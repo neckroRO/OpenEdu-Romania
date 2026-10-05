@@ -6,7 +6,9 @@ use App\Models\Concept;
 use App\Models\Resource;
 use App\Models\ResourceConcept;
 use App\Models\ResourceVersion;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class UpdateResourceEndpointTest extends TestCase
@@ -15,6 +17,12 @@ class UpdateResourceEndpointTest extends TestCase
 
     public function test_it_updates_the_current_draft_version(): void
     {
+        $teacher = User::factory()->create([
+            'role' => 'teacher',
+        ]);
+
+        Sanctum::actingAs($teacher);
+
         $concept = Concept::create([
             'code' => 'fractions',
             'title' => 'Fracții',
@@ -38,6 +46,7 @@ class UpdateResourceEndpointTest extends TestCase
             'difficulty_level' => 1,
             'complexity_level' => 1,
             'status' => 'draft',
+            'created_by' => $teacher->id,
         ]);
 
         ResourceConcept::create([
@@ -92,11 +101,18 @@ class UpdateResourceEndpointTest extends TestCase
             'summary' => 'Rezumat actualizat',
             'difficulty_level' => 3,
             'status' => 'draft',
+            'created_by' => $teacher->id,
         ]);
     }
 
     public function test_it_rejects_updates_when_resource_has_no_draft_version(): void
     {
+        $teacher = User::factory()->create([
+            'role' => 'teacher',
+        ]);
+
+        Sanctum::actingAs($teacher);
+
         $resource = Resource::create([
             'code' => 'published-resource',
             'type' => 'explanation',
@@ -114,6 +130,7 @@ class UpdateResourceEndpointTest extends TestCase
             'complexity_level' => 1,
             'status' => 'published',
             'published_at' => now(),
+            'created_by' => $teacher->id,
         ]);
 
         $response = $this->patchJson(
