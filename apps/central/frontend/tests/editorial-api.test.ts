@@ -8,8 +8,12 @@ import {
 
 import * as client from '../src/api/client'
 import {
+  approveResourceVersion,
   createEditorialResource,
   getEditorialResources,
+  getModerationQueue,
+  publishResourceVersion,
+  rejectResourceVersion,
   reviseResourceVersion,
   submitResourceVersion,
   updateEditorialResource,
@@ -177,4 +181,102 @@ describe('editorial API', () => {
       },
     )
   })
+
+  it('încarcă coada de moderare', async () => {
+    mockedApiRequest.mockResolvedValue({
+      data: [
+        {
+          id: 101,
+          status: 'submitted',
+        },
+      ],
+      meta: {
+        request_id: null,
+      },
+    })
+
+    const result =
+      await getModerationQueue()
+
+    expect(
+      mockedApiRequest,
+    ).toHaveBeenCalledWith(
+      '/editor/moderation',
+    )
+
+    expect(result).toEqual([
+      {
+        id: 101,
+        status: 'submitted',
+      },
+    ])
+  })
+
+  it('aprobă o versiune prin endpointul approve', async () => {
+    mockedApiRequest.mockResolvedValue({
+      data: null,
+      meta: {
+        request_id: null,
+      },
+    })
+
+    await approveResourceVersion(101)
+
+    expect(
+      mockedApiRequest,
+    ).toHaveBeenCalledWith(
+      '/resource-versions/101/approve',
+      {
+        method: 'POST',
+      },
+    )
+  })
+
+  it('respinge o versiune cu feedback prin endpointul reject', async () => {
+    mockedApiRequest.mockResolvedValue({
+      data: null,
+      meta: {
+        request_id: null,
+      },
+    })
+
+    await rejectResourceVersion(
+      101,
+      'Completează explicația.',
+    )
+
+    expect(
+      mockedApiRequest,
+    ).toHaveBeenCalledWith(
+      '/resource-versions/101/reject',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          review_note:
+            'Completează explicația.',
+        }),
+      },
+    )
+  })
+
+  it('publică o versiune prin endpointul publish', async () => {
+    mockedApiRequest.mockResolvedValue({
+      data: null,
+      meta: {
+        request_id: null,
+      },
+    })
+
+    await publishResourceVersion(101)
+
+    expect(
+      mockedApiRequest,
+    ).toHaveBeenCalledWith(
+      '/resource-versions/101/publish',
+      {
+        method: 'POST',
+      },
+    )
+  })
+
 })
