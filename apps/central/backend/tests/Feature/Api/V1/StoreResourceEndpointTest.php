@@ -6,7 +6,9 @@ use App\Models\Concept;
 use App\Models\Resource;
 use App\Models\ResourceConcept;
 use App\Models\ResourceVersion;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class StoreResourceEndpointTest extends TestCase
@@ -15,6 +17,12 @@ class StoreResourceEndpointTest extends TestCase
 
     public function test_it_creates_a_resource_with_initial_draft_version_and_primary_concept(): void
     {
+        $teacher = User::factory()->create([
+            'role' => 'teacher',
+        ]);
+
+        Sanctum::actingAs($teacher);
+
         $concept = Concept::create([
             'code' => 'fractions',
             'title' => 'Fracții',
@@ -82,6 +90,7 @@ class StoreResourceEndpointTest extends TestCase
             'version_number' => 1,
             'title' => 'Fracțiile explicate simplu',
             'status' => 'draft',
+            'created_by' => $teacher->id,
         ]);
 
         $this->assertDatabaseHas('resource_concepts', [

@@ -4,7 +4,9 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\Resource;
 use App\Models\ResourceVersion;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class ResourceVersionWorkflowEndpointTest extends TestCase
@@ -13,7 +15,17 @@ class ResourceVersionWorkflowEndpointTest extends TestCase
 
     public function test_draft_can_follow_submit_approve_publish_workflow(): void
     {
-        $version = $this->makeDraftVersion();
+        $teacher = User::factory()->create([
+            'role' => 'teacher',
+        ]);
+
+        $moderator = User::factory()->create([
+            'role' => 'moderator',
+        ]);
+
+        $version = $this->makeDraftVersion($teacher);
+
+        Sanctum::actingAs($teacher);
 
         $submitResponse = $this->postJson(
             "/api/v1/resource-versions/{$version->id}/submit"
@@ -33,6 +45,8 @@ class ResourceVersionWorkflowEndpointTest extends TestCase
             ResourceVersion::findOrFail($version->id)->submitted_at
         );
 
+        Sanctum::actingAs($moderator);
+
         $approveResponse = $this->postJson(
             "/api/v1/resource-versions/{$version->id}/approve"
         );
@@ -44,6 +58,7 @@ class ResourceVersionWorkflowEndpointTest extends TestCase
         $this->assertDatabaseHas('resource_versions', [
             'id' => $version->id,
             'status' => 'approved',
+            'reviewed_by' => $moderator->id,
         ]);
 
         $this->assertNotNull(
@@ -74,11 +89,23 @@ class ResourceVersionWorkflowEndpointTest extends TestCase
 
     public function test_submitted_version_can_be_rejected_with_feedback(): void
     {
-        $version = $this->makeDraftVersion();
+        $teacher = User::factory()->create([
+            'role' => 'teacher',
+        ]);
+
+        $moderator = User::factory()->create([
+            'role' => 'moderator',
+        ]);
+
+        $version = $this->makeDraftVersion($teacher);
+
+        Sanctum::actingAs($teacher);
 
         $this->postJson(
             "/api/v1/resource-versions/{$version->id}/submit"
         )->assertOk();
+
+        Sanctum::actingAs($moderator);
 
         $response = $this->postJson(
             "/api/v1/resource-versions/{$version->id}/reject",
@@ -100,6 +127,7 @@ class ResourceVersionWorkflowEndpointTest extends TestCase
         $this->assertDatabaseHas('resource_versions', [
             'id' => $version->id,
             'status' => 'rejected',
+            'reviewed_by' => $moderator->id,
             'review_note' =>
                 'Explicația trebuie simplificată pentru acest nivel.',
         ]);
@@ -113,61 +141,84 @@ class ResourceVersionWorkflowEndpointTest extends TestCase
         );
     }
 
-public function test_rejected_version_can_be_returned_to_draft_for_revision(): void
-{
-    $version = $this->makeDraftVersion();
+    public function test_rejected_version_can_be_returned_to_draft_for_revision(): void
+    {
+        $teacher = User::factory()->create([
+            'role' => 'teacher',
+        ]);
 
-    $this->postJson(
-        "/api/v1/resource-versions/{$version->id}/submit"
-    )->assertOk();
+        $moderator = User::factory()->create([
+            'role' => 'moderator',
+        ]);
 
-    $this->postJson(
-        "/api/v1/resource-versions/{$version->id}/reject",
-        [
-            'review_note' => 'Clarifică exemplul de la final.',
-        ]
-    )->assertOk();
+        $version = $this->makeDraftVersion($teacher);
 
-    $response = $this->postJson(
-        "/api/v1/resource-versions/{$version->id}/revise"
-    );
+        Sanctum::actingAs($teacher);
 
-    $response
-        ->assertOk()
-        ->assertHeader('X-Request-ID')
-        ->assertJsonPath('data.status', 'draft')
-        ->assertJsonPath(
-            'data.review_note',
-            'Clarifică exemplul de la final.'
+        $this->postJson(
+            "/api/v1/resource-versions/{$version->id}/submit"
+        )->assertOk();
+
+        Sanctum::actingAs($moderator);
+
+        $this->postJson(
+            "/api/v1/resource-versions/{$version->id}/reject",
+            [
+                'review_note' => 'Clarifică exemplul de la final.',
+            ]
+        )->assertOk();
+
+        Sanctum::actingAs($teacher);
+
+        $response = $this->postJson(
+            "/api/v1/resource-versions/{$version->id}/revise"
         );
 
-    $revisedVersion = ResourceVersion::findOrFail(
-        $version->id
-    );
+        $response
+            ->assertOk()
+            ->assertHeader('X-Request-ID')
+            ->assertJsonPath('data.status', 'draft')
+            ->assertJsonPath(
+                'data.review_note',
+                'Clarifică exemplul de la final.'
+            );
 
-    $this->assertSame(
-        'draft',
-        $revisedVersion->status->value
-    );
+        $revisedVersion = ResourceVersion::findOrFail(
+            $version->id
+        );
 
-    $this->assertNull(
-        $revisedVersion->submitted_at
-    );
+        $this->assertSame(
+            'draft',
+            $revisedVersion->status->value
+        );
 
-    $this->assertSame(
-        'Clarifică exemplul de la final.',
-        $revisedVersion->review_note
-    );
+        $this->assertNull(
+            $revisedVersion->submitted_at
+        );
 
-    $this->assertNotNull(
-        $revisedVersion->reviewed_at
-    );
-}
+        $this->assertSame(
+            'Clarifică exemplul de la final.',
+            $revisedVersion->review_note
+        );
 
+        $this->assertNotNull(
+            $revisedVersion->reviewed_at
+        );
+    }
 
     public function test_invalid_editorial_transition_returns_conflict(): void
     {
-        $version = $this->makeDraftVersion();
+        $teacher = User::factory()->create([
+            'role' => 'teacher',
+        ]);
+
+        $moderator = User::factory()->create([
+            'role' => 'moderator',
+        ]);
+
+        $version = $this->makeDraftVersion($teacher);
+
+        Sanctum::actingAs($moderator);
 
         $response = $this->postJson(
             "/api/v1/resource-versions/{$version->id}/publish"
@@ -191,7 +242,7 @@ public function test_rejected_version_can_be_returned_to_draft_for_revision(): v
         );
     }
 
-    private function makeDraftVersion(): ResourceVersion
+    private function makeDraftVersion(User $owner): ResourceVersion
     {
         $resource = Resource::create([
             'code' => 'workflow-' . uniqid(),
@@ -209,6 +260,7 @@ public function test_rejected_version_can_be_returned_to_draft_for_revision(): v
             'difficulty_level' => 1,
             'complexity_level' => 1,
             'status' => 'draft',
+            'created_by' => $owner->id,
         ]);
     }
 }
