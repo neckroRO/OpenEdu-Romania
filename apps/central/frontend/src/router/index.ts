@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import AppShell from '../components/layout/AppShell.vue'
+import { useAuthStore } from '../stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -28,6 +29,10 @@ const router = createRouter({
           path: 'teacher',
           name: 'teacher',
           component: () => import('../views/TeacherView.vue'),
+          meta: {
+            requiresAuth: true,
+            requiresContributor: true,
+          },
         },
       ],
     },
@@ -37,6 +42,46 @@ const router = createRouter({
       component: () => import('../views/LoginView.vue'),
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  const authStore = useAuthStore()
+
+  await authStore.initialize()
+
+  if (
+    to.meta.requiresAuth &&
+    !authStore.isAuthenticated
+  ) {
+    return {
+      name: 'login',
+      query: {
+        redirect: to.fullPath,
+      },
+    }
+  }
+
+  if (
+    to.meta.requiresContributor &&
+    !authStore.canContribute
+  ) {
+    return {
+      name: 'home',
+    }
+  }
+
+  if (
+    to.name === 'login' &&
+    authStore.isAuthenticated
+  ) {
+    return {
+      name: authStore.canContribute
+        ? 'teacher'
+        : 'home',
+    }
+  }
+
+  return true
 })
 
 export default router
