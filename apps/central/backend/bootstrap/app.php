@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\InvalidEditorialTransitionException;
 use App\Http\Middleware\RequestId;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
@@ -107,6 +108,23 @@ return Application::configure(basePath: dirname(__DIR__))
                 headers: $exception->getHeaders(),
             );
         });
+
+
+$exceptions->render(function (
+    InvalidEditorialTransitionException $exception,
+    Request $request
+) {
+    if (! $request->is('api/*')) {
+        return null;
+    }
+
+    return ApiResponse::error(
+        code: 'INVALID_EDITORIAL_TRANSITION',
+        message: $exception->getMessage(),
+        status: 409,
+    );
+});
+
 
         $exceptions->render(function (
             \Throwable $exception,
