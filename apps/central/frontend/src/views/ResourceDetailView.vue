@@ -108,7 +108,7 @@ watch(
     :aria-busy="loading"
   >
     <RouterLink
-      :to="{ name: 'resources' }"
+      :to="{ name: 'resources', query: route.query }"
       class="resource-back"
     >
       <span aria-hidden="true">←</span>
@@ -141,7 +141,7 @@ watch(
         </p>
 
         <RouterLink
-          :to="{ name: 'resources' }"
+          :to="{ name: 'resources', query: route.query }"
           class="resource-state-action"
         >
           Revino la catalog

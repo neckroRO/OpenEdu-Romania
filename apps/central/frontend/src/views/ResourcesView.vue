@@ -2,6 +2,7 @@
 import { computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 
+import ResourceSearchPanel from '../components/resources/ResourceSearchPanel.vue'
 import { useCatalogStore } from '../stores/catalog'
 
 import type { ConceptPlacement } from '../types/catalog'
@@ -99,6 +100,8 @@ onMounted(() => {
         să îl aprofundezi.
       </p>
     </div>
+
+    <ResourceSearchPanel />
 
     <div class="catalog-progress" aria-label="Progres navigare catalog">
       <div
