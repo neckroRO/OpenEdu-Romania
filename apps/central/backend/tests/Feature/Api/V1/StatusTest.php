@@ -13,11 +13,17 @@ class StatusTest extends TestCase
         $response
             ->assertOk()
             ->assertHeader('X-Request-ID')
-            ->assertExactJson([
+            ->assertJsonPath('data.service', 'openedu-central-api')
+            ->assertJsonPath('data.status', 'ok')
+            ->assertJsonPath('data.api_version', 'v1')
+            ->assertJsonStructure([
                 'data' => [
-                    'service' => 'openedu-central-api',
-                    'status' => 'ok',
-                    'api_version' => 'v1',
+                    'service',
+                    'status',
+                    'api_version',
+                ],
+                'meta' => [
+                    'request_id',
                 ],
             ]);
 
@@ -27,5 +33,7 @@ class StatusTest extends TestCase
             '/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
             $requestId
         );
+
+        $response->assertJsonPath('meta.request_id', $requestId);
     }
 }
