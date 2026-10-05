@@ -49,3 +49,28 @@ export interface ConceptPlacement {
   domain: Domain
   concept: Concept
 }
+
+export interface ResourceVersionSummary {
+  id: number
+  version_number: number
+  title: string
+  summary: string | null
+  language_code: string
+  difficulty_level: number
+  complexity_level: number
+  published_at: string | null
+}
+
+export interface CatalogResource {
+  id: number
+  code: string
+  type: string
+  version: ResourceVersionSummary | null
+}
+
+export interface ConceptResourceLink {
+  id: number
+  is_primary: boolean
+  display_order: number
+  resource: CatalogResource
+}

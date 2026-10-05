@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import {
+  getConceptResources,
   getCurriculumSubjectConcepts,
   getEducationLevels,
   getEducationLevelSubjects,
@@ -9,6 +10,7 @@ import {
 
 import type {
   ConceptPlacement,
+  ConceptResourceLink,
   CurriculumSubject,
   EducationLevel,
 } from '../types/catalog'
@@ -29,16 +31,38 @@ export const useCatalogStore = defineStore('catalog', () => {
   const selectedCurriculumSubject = ref<CurriculumSubject | null>(null)
 
   const conceptPlacements = ref<ConceptPlacement[]>([])
+  const selectedConceptPlacement = ref<ConceptPlacement | null>(null)
+
+  const conceptResources = ref<ConceptResourceLink[]>([])
 
   const loading = ref(false)
+  const resourcesLoading = ref(false)
+
   const error = ref<string | null>(null)
+  const resourcesError = ref<string | null>(null)
+
+  let resourceRequestId = 0
 
   function clearError(): void {
     error.value = null
   }
 
+  function clearResourcesError(): void {
+    resourcesError.value = null
+  }
+
+  function resetResources(): void {
+    resourceRequestId += 1
+
+    selectedConceptPlacement.value = null
+    conceptResources.value = []
+    resourcesLoading.value = false
+    clearResourcesError()
+  }
+
   function resetConcepts(): void {
     conceptPlacements.value = []
+    resetResources()
   }
 
   function resetSubjectSelection(): void {
@@ -112,18 +136,59 @@ export const useCatalogStore = defineStore('catalog', () => {
     }
   }
 
+  async function selectConcept(
+    conceptPlacement: ConceptPlacement,
+  ): Promise<void> {
+    const currentRequestId = ++resourceRequestId
+
+    selectedConceptPlacement.value = conceptPlacement
+    conceptResources.value = []
+
+    resourcesLoading.value = true
+    clearResourcesError()
+
+    try {
+      const resources = await getConceptResources(
+        conceptPlacement.concept.id,
+      )
+
+      if (currentRequestId !== resourceRequestId) {
+        return
+      }
+
+      conceptResources.value = resources
+    } catch (caughtError) {
+      if (currentRequestId !== resourceRequestId) {
+        return
+      }
+
+      conceptResources.value = []
+      resourcesError.value = getErrorMessage(caughtError)
+    } finally {
+      if (currentRequestId === resourceRequestId) {
+        resourcesLoading.value = false
+      }
+    }
+  }
+
   return {
     educationLevels,
     selectedEducationLevel,
     curriculumSubjects,
     selectedCurriculumSubject,
     conceptPlacements,
+    selectedConceptPlacement,
+    conceptResources,
     loading,
+    resourcesLoading,
     error,
+    resourcesError,
     loadEducationLevels,
     selectEducationLevel,
     selectCurriculumSubject,
+    selectConcept,
     clearNavigation,
     clearError,
+    clearResourcesError,
   }
 })

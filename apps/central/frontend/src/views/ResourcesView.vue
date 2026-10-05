@@ -14,8 +14,12 @@ const {
   curriculumSubjects,
   selectedCurriculumSubject,
   conceptPlacements,
+  selectedConceptPlacement,
+  conceptResources,
   loading,
+  resourcesLoading,
   error,
+  resourcesError,
 } = storeToRefs(catalogStore)
 
 interface ConceptGroup {
@@ -64,6 +68,16 @@ async function retryLastRequest(): Promise<void> {
   }
 
   await catalogStore.loadEducationLevels()
+}
+
+async function retryConceptResources(): Promise<void> {
+  if (!selectedConceptPlacement.value) {
+    return
+  }
+
+  await catalogStore.selectConcept(
+    selectedConceptPlacement.value,
+  )
 }
 
 onMounted(() => {
@@ -117,11 +131,25 @@ onMounted(() => {
       <div
         class="catalog-progress-step"
         :class="{
-          'is-active': selectedCurriculumSubject,
+          'is-active':
+            selectedCurriculumSubject && !selectedConceptPlacement,
+          'is-complete': selectedConceptPlacement,
         }"
       >
         <span>03</span>
         <strong>Concept</strong>
+      </div>
+
+      <div class="catalog-progress-line" />
+
+      <div
+        class="catalog-progress-step"
+        :class="{
+          'is-active': selectedConceptPlacement,
+        }"
+      >
+        <span>04</span>
+        <strong>Resurse</strong>
       </div>
     </div>
 
@@ -360,10 +388,20 @@ onMounted(() => {
             </div>
 
             <div class="concept-list">
-              <article
+              <button
                 v-for="placement in group.placements"
                 :key="placement.id"
+                type="button"
                 class="concept-card"
+                :class="{
+                  'is-selected':
+                    selectedConceptPlacement?.id === placement.id,
+                }"
+                :aria-pressed="
+                  selectedConceptPlacement?.id === placement.id
+                "
+                :disabled="resourcesLoading"
+                @click="catalogStore.selectConcept(placement)"
               >
                 <div class="concept-card-content">
                   <div class="concept-card-meta">
@@ -387,7 +425,7 @@ onMounted(() => {
                 </div>
 
                 <span class="concept-card-arrow">→</span>
-              </article>
+              </button>
             </div>
           </section>
         </div>
@@ -398,6 +436,119 @@ onMounted(() => {
         </div>
       </section>
     </div>
+
+    <section
+      v-if="selectedConceptPlacement"
+      class="catalog-resources"
+      aria-live="polite"
+    >
+      <div class="catalog-resources-heading">
+        <div>
+          <span class="catalog-step-number">04</span>
+          <h2>Resurse asociate</h2>
+
+          <p>
+            Resursele disponibile pentru
+            <strong>
+              {{ selectedConceptPlacement.concept.title }}
+            </strong>.
+          </p>
+        </div>
+
+        <span
+          v-if="!resourcesLoading && !resourcesError"
+          class="catalog-resource-count"
+        >
+          {{ conceptResources.length }}
+          {{ conceptResources.length === 1 ? 'resursă' : 'resurse' }}
+        </span>
+      </div>
+
+      <div
+        v-if="resourcesLoading"
+        class="catalog-loading catalog-resource-state"
+      >
+        <span class="catalog-spinner" />
+        <span>Se încarcă resursele asociate...</span>
+      </div>
+
+      <div
+        v-else-if="resourcesError"
+        class="catalog-resource-error"
+        role="alert"
+      >
+        <div>
+          <strong>Nu am putut încărca resursele conceptului.</strong>
+          <span>{{ resourcesError }}</span>
+        </div>
+
+        <button
+          type="button"
+          class="catalog-retry"
+          :disabled="resourcesLoading"
+          @click="retryConceptResources"
+        >
+          Încearcă din nou
+        </button>
+      </div>
+
+      <div
+        v-else-if="conceptResources.length === 0"
+        class="catalog-empty catalog-resource-state"
+      >
+        Nu există momentan resurse publicate asociate acestui concept.
+      </div>
+
+      <div v-else class="catalog-resource-grid">
+        <article
+          v-for="linkedResource in conceptResources"
+          :key="linkedResource.id"
+          class="catalog-resource-card"
+        >
+          <div class="catalog-resource-card-top">
+            <span class="catalog-resource-type">
+              {{ linkedResource.resource.type }}
+            </span>
+
+            <span
+              v-if="linkedResource.is_primary"
+              class="catalog-resource-primary"
+            >
+              Resursă principală
+            </span>
+          </div>
+
+          <h3>
+            {{
+              linkedResource.resource.version?.title ??
+              linkedResource.resource.code
+            }}
+          </h3>
+
+          <p v-if="linkedResource.resource.version?.summary">
+            {{ linkedResource.resource.version.summary }}
+          </p>
+
+          <div class="catalog-resource-meta">
+            <span>{{ linkedResource.resource.code }}</span>
+
+            <span v-if="linkedResource.resource.version">
+              Dificultate
+              {{ linkedResource.resource.version.difficulty_level }}
+            </span>
+
+            <span v-if="linkedResource.resource.version">
+              Complexitate
+              {{ linkedResource.resource.version.complexity_level }}
+            </span>
+
+            <span v-if="linkedResource.resource.version">
+              {{ linkedResource.resource.version.language_code }}
+            </span>
+          </div>
+        </article>
+      </div>
+    </section>
   </section>
 </template>
 
@@ -413,7 +564,7 @@ onMounted(() => {
 .catalog-progress {
   display: flex;
   align-items: center;
-  max-width: 700px;
+  max-width: 820px;
   margin-top: 42px;
 }
 
@@ -736,6 +887,7 @@ onMounted(() => {
 }
 
 .concept-card {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -744,6 +896,34 @@ onMounted(() => {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: #fff;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.concept-card:hover:not(:disabled) {
+  border-color: #c9d3f5;
+  box-shadow: 0 5px 16px rgba(49, 86, 211, 0.07);
+  transform: translateY(-1px);
+}
+
+.concept-card.is-selected {
+  border-color: #a9b9f2;
+  background: #f4f6ff;
+}
+
+.concept-card.is-selected .concept-card-arrow {
+  color: var(--primary);
+}
+
+.concept-card:disabled {
+  cursor: default;
 }
 
 .concept-card-content {
@@ -789,6 +969,150 @@ onMounted(() => {
   line-height: 1.5;
 }
 
+.catalog-resources {
+  margin-top: 22px;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgba(44, 55, 90, 0.035);
+}
+
+.catalog-resources-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.catalog-resources-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.catalog-resources-heading p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.catalog-resources-heading p strong {
+  color: var(--text);
+}
+
+.catalog-resource-count {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.catalog-resource-state {
+  min-height: 130px;
+}
+
+.catalog-resource-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 90px;
+  padding: 18px 20px;
+  border: 1px solid #f2caca;
+  border-radius: 12px;
+  background: #fff7f7;
+}
+
+.catalog-resource-error > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.catalog-resource-error strong {
+  color: #8a2828;
+  font-size: 14px;
+}
+
+.catalog-resource-error span {
+  color: #a05050;
+  font-size: 13px;
+}
+
+.catalog-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.catalog-resource-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.catalog-resource-card-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 11px;
+}
+
+.catalog-resource-type,
+.catalog-resource-primary {
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.catalog-resource-type {
+  background: #f1f3f7;
+  color: #697386;
+}
+
+.catalog-resource-primary {
+  background: #eef2ff;
+  color: var(--primary);
+}
+
+.catalog-resource-card h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.catalog-resource-card > p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.catalog-resource-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f4;
+  color: #8992a1;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 @media (max-width: 1100px) {
   .catalog-grid {
     grid-template-columns: 1fr 1fr;
@@ -821,6 +1145,16 @@ onMounted(() => {
 
   .catalog-concepts-column {
     grid-column: auto;
+  }
+
+  .catalog-resource-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-resources-heading,
+  .catalog-resource-error {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .catalog-error {

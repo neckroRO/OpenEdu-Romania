@@ -3,6 +3,7 @@ import { apiRequest } from './client'
 import type {
   ApiResponse,
   ConceptPlacement,
+  ConceptResourceLink,
   CurriculumSubject,
   EducationLevel,
 } from '../types/catalog'
@@ -29,6 +30,16 @@ export async function getCurriculumSubjectConcepts(
 ): Promise<ConceptPlacement[]> {
   const response = await apiRequest<ApiResponse<ConceptPlacement[]>>(
     `/curriculum-subjects/${curriculumSubjectId}/concepts`,
+  )
+
+  return response.data
+}
+
+export async function getConceptResources(
+  conceptId: number,
+): Promise<ConceptResourceLink[]> {
+  const response = await apiRequest<ApiResponse<ConceptResourceLink[]>>(
+    `/concepts/${conceptId}/resources?per_page=100`,
   )
 
   return response.data
