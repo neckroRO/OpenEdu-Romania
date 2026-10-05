@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\CurriculumSubjectConceptController;
 use App\Http\Controllers\Api\V1\EducationLevelController;
 use App\Http\Controllers\Api\V1\EducationLevelSubjectController;
 use App\Http\Controllers\Api\V1\ResourceController;
+use App\Http\Controllers\Api\V1\ResourceIndexController;
 use App\Http\Controllers\Api\V1\ResourceVersionWorkflowController;
 use App\Http\Controllers\Api\V1\StatusController;
 use Illuminate\Support\Facades\Route;
@@ -68,6 +69,11 @@ Route::middleware('auth:sanctum')
     });
 
 Route::get('/status', StatusController::class);
+
+Route::get(
+    '/resources',
+    ResourceIndexController::class
+);
 
 Route::get(
     '/resources/{resource}',

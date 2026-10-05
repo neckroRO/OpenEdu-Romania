@@ -170,4 +170,85 @@ class ConceptResourceEndpointTest extends TestCase
             $requestId
         );
     }
+
+    public function test_it_paginates_resources_for_a_concept(): void
+    {
+        $concept = Concept::create([
+            'code' => 'fractions',
+            'title' => 'Fracții',
+            'description' => null,
+            'status' => 'active',
+        ]);
+
+        foreach (range(1, 5) as $number) {
+            $resource = Resource::create([
+                'code' => "fractions-resource-{$number}",
+                'type' => 'explanation',
+                'status' => 'active',
+            ]);
+
+            ResourceVersion::create([
+                'resource_id' => $resource->id,
+                'version_number' => 1,
+                'title' => "Fracții {$number}",
+                'summary' => null,
+                'content' => null,
+                'source_url' => null,
+                'language_code' => 'ro',
+                'difficulty_level' => 1,
+                'complexity_level' => 1,
+                'status' => 'published',
+                'published_at' => now(),
+            ]);
+
+            ResourceConcept::create([
+                'resource_id' => $resource->id,
+                'concept_id' => $concept->id,
+                'is_primary' => true,
+                'display_order' => $number,
+            ]);
+        }
+
+        $response = $this->getJson(
+            "/api/v1/concepts/{$concept->id}/resources"
+            . '?page=2&per_page=2'
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath(
+                'meta.pagination.current_page',
+                2
+            )
+            ->assertJsonPath(
+                'meta.pagination.per_page',
+                2
+            )
+            ->assertJsonPath(
+                'meta.pagination.total',
+                5
+            )
+            ->assertJsonPath(
+                'meta.pagination.last_page',
+                3
+            )
+            ->assertJsonPath(
+                'meta.pagination.from',
+                3
+            )
+            ->assertJsonPath(
+                'meta.pagination.to',
+                4
+            )
+            ->assertJsonPath(
+                'data.0.display_order',
+                3
+            )
+            ->assertJsonPath(
+                'data.1.display_order',
+                4
+            );
+    }
+
 }
