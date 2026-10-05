@@ -16,6 +16,11 @@ class ResourceVersionPolicy
         return null;
     }
 
+    public function viewAny(User $user): bool
+    {
+        return $user->role->canModerate();
+    }
+
     public function update(
         User $user,
         ResourceVersion $version

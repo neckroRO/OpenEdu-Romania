@@ -7,6 +7,7 @@ import type {
   EditorialResourceVersion,
   UpdateResourcePayload,
 } from '../types/editorial'
+import type { ModerationQueueItem } from '../types/moderation'
 import type { EducationalResourceDetail } from '../types/resource'
 
 export async function getEditorialResources(): Promise<
@@ -68,4 +69,51 @@ export async function reviseResourceVersion(
   })
 
   return response.data
+}
+
+export async function getModerationQueue(): Promise<
+  ModerationQueueItem[]
+> {
+  const response = await apiRequest<
+    ApiResponse<ModerationQueueItem[]>
+  >('/editor/moderation')
+
+  return response.data
+}
+
+export async function approveResourceVersion(
+  resourceVersionId: number,
+): Promise<void> {
+  await apiRequest(
+    `/resource-versions/${resourceVersionId}/approve`,
+    {
+      method: 'POST',
+    },
+  )
+}
+
+export async function rejectResourceVersion(
+  resourceVersionId: number,
+  reviewNote: string,
+): Promise<void> {
+  await apiRequest(
+    `/resource-versions/${resourceVersionId}/reject`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        review_note: reviewNote,
+      }),
+    },
+  )
+}
+
+export async function publishResourceVersion(
+  resourceVersionId: number,
+): Promise<void> {
+  await apiRequest(
+    `/resource-versions/${resourceVersionId}/publish`,
+    {
+      method: 'POST',
+    },
+  )
 }

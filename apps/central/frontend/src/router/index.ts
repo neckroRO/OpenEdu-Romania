@@ -34,6 +34,15 @@ const router = createRouter({
             requiresContributor: true,
           },
         },
+        {
+          path: 'moderation',
+          name: 'moderation',
+          component: () => import('../views/ModerationView.vue'),
+          meta: {
+            requiresAuth: true,
+            requiresModerator: true,
+          },
+        },
       ],
     },
     {
@@ -62,6 +71,17 @@ router.beforeEach(async (to) => {
   }
 
   if (
+    to.meta.requiresModerator &&
+    !authStore.canModerate
+  ) {
+    return {
+      name: authStore.canContribute
+        ? 'teacher'
+        : 'home',
+    }
+  }
+
+  if (
     to.meta.requiresContributor &&
     !authStore.canContribute
   ) {
@@ -74,6 +94,12 @@ router.beforeEach(async (to) => {
     to.name === 'login' &&
     authStore.isAuthenticated
   ) {
+    if (authStore.canModerate) {
+      return {
+        name: 'moderation',
+      }
+    }
+
     return {
       name: authStore.canContribute
         ? 'teacher'
