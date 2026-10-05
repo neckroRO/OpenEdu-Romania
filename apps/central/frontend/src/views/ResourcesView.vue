@@ -500,9 +500,15 @@ onMounted(() => {
       </div>
 
       <div v-else class="catalog-resource-grid">
-        <article
+        <RouterLink
           v-for="linkedResource in conceptResources"
           :key="linkedResource.id"
+          :to="{
+            name: 'resource-detail',
+            params: {
+              resourceId: linkedResource.resource.id,
+            },
+          }"
           class="catalog-resource-card"
         >
           <div class="catalog-resource-card-top">
@@ -546,7 +552,7 @@ onMounted(() => {
               {{ linkedResource.resource.version.language_code }}
             </span>
           </div>
-        </article>
+        </RouterLink>
       </div>
     </section>
   </section>
@@ -1058,6 +1064,23 @@ onMounted(() => {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #fff;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.catalog-resource-card:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 10px 28px rgba(49, 86, 211, 0.08);
+  transform: translateY(-2px);
+}
+
+.catalog-resource-card:focus-visible {
+  outline: 3px solid rgba(49, 86, 211, 0.22);
+  outline-offset: 3px;
 }
 
 .catalog-resource-card-top {
