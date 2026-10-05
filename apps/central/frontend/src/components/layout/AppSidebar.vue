@@ -1,6 +1,15 @@
+<script setup lang="ts">
+import { useAuthStore } from '../../stores/auth'
+
+const authStore = useAuthStore()
+</script>
+
 <template>
   <aside class="app-sidebar">
-    <nav class="main-navigation" aria-label="Navigație principală">
+    <nav
+      class="main-navigation"
+      aria-label="Navigație principală"
+    >
       <RouterLink to="/" class="nav-item">
         <span class="nav-icon">⌂</span>
         <span>Acasă</span>
@@ -11,9 +20,22 @@
         <span>Resurse</span>
       </RouterLink>
 
-      <RouterLink to="/teacher" class="nav-item">
+      <RouterLink
+        v-if="authStore.canContribute"
+        to="/teacher"
+        class="nav-item"
+      >
         <span class="nav-icon">✎</span>
         <span>Zona profesorului</span>
+      </RouterLink>
+
+      <RouterLink
+        v-if="authStore.canModerate"
+        to="/moderation"
+        class="nav-item"
+      >
+        <span class="nav-icon">✓</span>
+        <span>Moderare</span>
       </RouterLink>
     </nav>
 

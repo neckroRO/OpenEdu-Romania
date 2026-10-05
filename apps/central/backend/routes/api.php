@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\CurriculumSubjectConceptController;
 use App\Http\Controllers\Api\V1\EducationLevelController;
 use App\Http\Controllers\Api\V1\EducationLevelSubjectController;
 use App\Http\Controllers\Api\V1\EditorialResourceIndexController;
+use App\Http\Controllers\Api\V1\ModerationQueueController;
 use App\Http\Controllers\Api\V1\ResourceController;
 use App\Http\Controllers\Api\V1\ResourceIndexController;
 use App\Http\Controllers\Api\V1\ResourceVersionWorkflowController;
@@ -36,6 +37,11 @@ Route::middleware('auth:sanctum')
         Route::get(
             '/editor/resources',
             EditorialResourceIndexController::class
+        );
+
+        Route::get(
+            '/editor/moderation',
+            ModerationQueueController::class
         );
 
         Route::post(

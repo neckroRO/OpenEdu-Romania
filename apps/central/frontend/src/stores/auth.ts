@@ -30,6 +30,12 @@ export const useAuthStore = defineStore('auth', () => {
     ),
   )
 
+  const canModerate = computed(() =>
+    ['moderator', 'admin'].includes(
+      user.value?.role ?? '',
+    ),
+  )
+
   function clearSession(): void {
     token.value = null
     user.value = null
@@ -106,6 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     isAuthenticated,
     canContribute,
+    canModerate,
     initialize,
     login,
     logout,
