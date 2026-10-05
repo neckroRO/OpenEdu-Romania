@@ -57,6 +57,13 @@ async function submit(): Promise<void> {
       return
     }
 
+    if (authStore.canModerate) {
+      await router.replace({
+        name: 'moderation',
+      })
+      return
+    }
+
     await router.replace(
       authStore.canContribute
         ? { name: 'teacher' }
