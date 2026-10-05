@@ -20,6 +20,11 @@ const router = createRouter({
           component: () => import('../views/ResourcesView.vue'),
         },
         {
+          path: 'resources/:resourceId',
+          name: 'resource-detail',
+          component: () => import('../views/ResourceDetailView.vue'),
+        },
+        {
           path: 'teacher',
           name: 'teacher',
           component: () => import('../views/TeacherView.vue'),
