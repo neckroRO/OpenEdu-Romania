@@ -460,9 +460,6 @@ async function reviseVersion(
       resource.version.id,
     )
 
-    notice.value =
-      'Resursa a revenit în starea draft și poate fi editată.'
-
     await loadResources()
 
     const refreshed = resources.value.find(
@@ -472,6 +469,9 @@ async function reviseVersion(
     if (refreshed) {
       startEdit(refreshed)
     }
+
+    notice.value =
+      'Resursa a revenit în starea draft și poate fi editată.'
   } catch (error) {
     if (await handleExpiredSession(error)) {
       return
