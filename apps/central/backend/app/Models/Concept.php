@@ -30,6 +30,21 @@ class Concept extends Model
             ->withTimestamps();
     }
 
+    public function competencyConcepts(): HasMany
+    {
+        return $this->hasMany(CompetencyConcept::class);
+    }
+
+    public function competencies(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Competency::class,
+            'competency_concepts'
+        )
+            ->withPivot(['display_order', 'is_core'])
+            ->withTimestamps();
+    }
+
     public function resourceConcepts(): HasMany
     {
         return $this->hasMany(ResourceConcept::class);

@@ -35,4 +35,9 @@ class CurriculumSubject extends Model
     {
         return $this->hasMany(Domain::class);
     }
+
+    public function competencies(): HasMany
+    {
+        return $this->hasMany(Competency::class);
+    }
 }
