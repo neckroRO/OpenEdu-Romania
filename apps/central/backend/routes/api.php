@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ConceptResourceController;
 use App\Http\Controllers\Api\V1\CurriculumImportController;
@@ -45,6 +46,16 @@ Route::middleware('auth:sanctum')
 
 Route::middleware('auth:sanctum')
     ->group(function () {
+        Route::get(
+            '/admin/users',
+            [AdminUserController::class, 'index']
+        );
+
+        Route::post(
+            '/admin/users',
+            [AdminUserController::class, 'store']
+        );
+
         Route::post(
             '/admin/curriculum/import',
             CurriculumImportController::class
