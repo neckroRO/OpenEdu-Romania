@@ -1,0 +1,218 @@
+{
+  "schema_version": "1.0",
+  "curriculum": {
+    "code": "RO-NATIONAL",
+    "name": "Curriculum național România",
+    "country_code": "RO",
+    "status": "active"
+  },
+  "curriculum_version": {
+    "version": "MVP-2026",
+    "valid_from": "2026-01-01",
+    "valid_until": null,
+    "status": "active"
+  },
+  "education_level": {
+    "code": "grade-7",
+    "name": "Clasa a VII-a",
+    "ordinal": 7,
+    "education_stage": "gimnazial"
+  },
+  "subject": {
+    "code": "mathematics",
+    "name": "Matematică",
+    "description": "Matematică pentru învățământul gimnazial.",
+    "status": "active"
+  },
+  "curriculum_subject": {
+    "display_order": 1,
+    "status": "active",
+    "program": {
+      "reference": "OMEN nr. 3393/28.02.2017",
+      "source_url": "https://www.edu.ro/Ordin_ministru_3393_2017",
+      "approved_at": "2017-02-28"
+    }
+  },
+  "domains": [
+    {
+      "key": "algebra",
+      "parent_key": null,
+      "title": "Algebră",
+      "description": "Concepte fundamentale de algebră.",
+      "display_order": 1
+    }
+  ],
+  "concepts": [
+    {
+      "code": "linear-equations",
+      "title": "Ecuații de gradul I",
+      "description": "Introducere în ecuațiile de gradul I cu o necunoscută.",
+      "status": "active",
+      "placements": [
+        {
+          "domain_key": "algebra",
+          "display_order": 1,
+          "is_core": true
+        }
+      ]
+    }
+  ],
+  "competencies": [
+    {
+      "code": "1",
+      "type": "general",
+      "parent_code": null,
+      "title": "Identificarea datelor și relațiilor matematice",
+      "description": null,
+      "display_order": 1,
+      "status": "active",
+      "concepts": []
+    },
+    {
+      "code": "1.2",
+      "type": "specific",
+      "parent_code": "1",
+      "title": "Identificarea situațiilor rezolvabile prin ecuații sau sisteme liniare",
+      "description": null,
+      "display_order": 2,
+      "status": "active",
+      "concepts": [
+        {
+          "code": "linear-equations",
+          "display_order": 1,
+          "is_core": true
+        }
+      ]
+    },
+    {
+      "code": "2",
+      "type": "general",
+      "parent_code": null,
+      "title": "Prelucrarea datelor matematice",
+      "description": null,
+      "display_order": 2,
+      "status": "active",
+      "concepts": []
+    },
+    {
+      "code": "2.2",
+      "type": "specific",
+      "parent_code": "2",
+      "title": "Verificarea soluțiilor ecuațiilor și sistemelor liniare",
+      "description": null,
+      "display_order": 2,
+      "status": "active",
+      "concepts": [
+        {
+          "code": "linear-equations",
+          "display_order": 1,
+          "is_core": true
+        }
+      ]
+    },
+    {
+      "code": "3",
+      "type": "general",
+      "parent_code": null,
+      "title": "Utilizarea conceptelor și algoritmilor matematici",
+      "description": null,
+      "display_order": 3,
+      "status": "active",
+      "concepts": []
+    },
+    {
+      "code": "3.2",
+      "type": "specific",
+      "parent_code": "3",
+      "title": "Utilizarea transformărilor echivalente în rezolvarea ecuațiilor",
+      "description": null,
+      "display_order": 2,
+      "status": "active",
+      "concepts": [
+        {
+          "code": "linear-equations",
+          "display_order": 1,
+          "is_core": true
+        }
+      ]
+    },
+    {
+      "code": "4",
+      "type": "general",
+      "parent_code": null,
+      "title": "Exprimarea demersurilor de rezolvare",
+      "description": null,
+      "display_order": 4,
+      "status": "active",
+      "concepts": []
+    },
+    {
+      "code": "4.2",
+      "type": "specific",
+      "parent_code": "4",
+      "title": "Redactarea rezolvării ecuațiilor și sistemelor liniare",
+      "description": null,
+      "display_order": 2,
+      "status": "active",
+      "concepts": [
+        {
+          "code": "linear-equations",
+          "display_order": 1,
+          "is_core": true
+        }
+      ]
+    },
+    {
+      "code": "5",
+      "type": "general",
+      "parent_code": null,
+      "title": "Analizarea situațiilor matematice",
+      "description": null,
+      "display_order": 5,
+      "status": "active",
+      "concepts": []
+    },
+    {
+      "code": "5.2",
+      "type": "specific",
+      "parent_code": "5",
+      "title": "Stabilirea metodelor de rezolvare pentru ecuații și sisteme",
+      "description": null,
+      "display_order": 2,
+      "status": "active",
+      "concepts": [
+        {
+          "code": "linear-equations",
+          "display_order": 1,
+          "is_core": true
+        }
+      ]
+    },
+    {
+      "code": "6",
+      "type": "general",
+      "parent_code": null,
+      "title": "Modelarea matematică a situațiilor date",
+      "description": null,
+      "display_order": 6,
+      "status": "active",
+      "concepts": []
+    },
+    {
+      "code": "6.2",
+      "type": "specific",
+      "parent_code": "6",
+      "title": "Modelarea situațiilor folosind ecuații și sisteme liniare",
+      "description": null,
+      "display_order": 2,
+      "status": "active",
+      "concepts": [
+        {
+          "code": "linear-equations",
+          "display_order": 1,
+          "is_core": true
+        }
+      ]
+    }
+  ]
+}

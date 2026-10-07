@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ConceptResourceController;
+use App\Http\Controllers\Api\V1\CurriculumImportController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectConceptController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectCompetencyController;
 use App\Http\Controllers\Api\V1\EducationLevelController;
@@ -35,6 +36,11 @@ Route::middleware('auth:sanctum')
 
 Route::middleware('auth:sanctum')
     ->group(function () {
+        Route::post(
+            '/admin/curriculum/import',
+            CurriculumImportController::class
+        );
+
         Route::get(
             '/editor/resources',
             EditorialResourceIndexController::class
