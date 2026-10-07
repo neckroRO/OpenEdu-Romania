@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CurriculumSubject;
+use App\Models\Lesson;
 use Database\Seeders\OpenEduMvpSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +13,7 @@ class OpenEduMvpSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_mvp_seeder_creates_curriculum_competencies_and_is_idempotent(): void
+    public function test_mvp_seeder_creates_curriculum_lessons_competencies_and_is_idempotent(): void
     {
         $this->seed(OpenEduMvpSeeder::class);
         $this->seed(OpenEduMvpSeeder::class);
@@ -76,6 +77,42 @@ class OpenEduMvpSeederTest extends TestCase
             1,
             DB::table('concepts')
                 ->where('code', 'linear-equations')
+                ->count()
+        );
+
+        $lesson = Lesson::query()
+            ->where('code', 'linear-equations-basics')
+            ->firstOrFail();
+
+        $this->assertSame(
+            $curriculumSubject->id,
+            $lesson->curriculum_subject_id
+        );
+
+        $this->assertSame(
+            'Ecuații de gradul I',
+            $lesson->title
+        );
+
+        $this->assertSame(
+            1,
+            DB::table('lessons')
+                ->where('code', 'linear-equations-basics')
+                ->count()
+        );
+
+        $this->assertSame(
+            6,
+            DB::table('lesson_competencies')
+                ->where('lesson_id', $lesson->id)
+                ->count()
+        );
+
+        $this->assertSame(
+            6,
+            DB::table('lesson_competencies')
+                ->where('lesson_id', $lesson->id)
+                ->where('is_core', true)
                 ->count()
         );
 

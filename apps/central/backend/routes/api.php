@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\ConceptResourceController;
 use App\Http\Controllers\Api\V1\CurriculumImportController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectConceptController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectCompetencyController;
+use App\Http\Controllers\Api\V1\CurriculumSubjectLessonController;
 use App\Http\Controllers\Api\V1\EducationLevelController;
 use App\Http\Controllers\Api\V1\EducationLevelSubjectController;
 use App\Http\Controllers\Api\V1\EditorialResourceIndexController;
@@ -112,6 +113,11 @@ Route::get(
 Route::get(
     '/curriculum-subjects/{curriculumSubject}/competencies',
     [CurriculumSubjectCompetencyController::class, 'index']
+);
+
+Route::get(
+    '/curriculum-subjects/{curriculumSubject}/lessons',
+    [CurriculumSubjectLessonController::class, 'index']
 );
 
 Route::get(
