@@ -31,6 +31,13 @@ class LessonDetailResource extends JsonResource
                         'lessonCompetencies'
                     )
                 ),
+
+            'concepts' =>
+                LessonConceptResource::collection(
+                    $this->whenLoaded(
+                        'lessonConcepts'
+                    )
+                ),
         ];
     }
 }

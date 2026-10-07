@@ -23,6 +23,22 @@ class Lesson extends Model
         return $this->belongsTo(CurriculumSubject::class);
     }
 
+    public function lessonConcepts(): HasMany
+    {
+        return $this->hasMany(LessonConcept::class);
+    }
+
+    public function concepts(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Concept::class,
+            'lesson_concepts'
+        )
+            ->withPivot(['display_order', 'is_core'])
+            ->withTimestamps()
+            ->orderByPivot('display_order');
+    }
+
     public function versions(): HasMany
     {
         return $this->hasMany(LessonVersion::class);

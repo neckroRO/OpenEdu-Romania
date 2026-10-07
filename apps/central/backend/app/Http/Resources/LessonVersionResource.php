@@ -21,6 +21,13 @@ class LessonVersionResource extends JsonResource
             'language_code' => $this->language_code,
             'published_at' =>
                 $this->published_at?->toISOString(),
+
+            'resources' =>
+                LessonVersionResourceLinkResource::collection(
+                    $this->whenLoaded(
+                        'lessonVersionResources'
+                    )
+                ),
         ];
     }
 }
