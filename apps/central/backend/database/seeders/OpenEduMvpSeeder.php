@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Competency;
+use App\Models\CompetencyConcept;
 use App\Models\Concept;
 use App\Models\ConceptPlacement;
 use App\Models\Curriculum;
@@ -67,6 +69,10 @@ class OpenEduMvpSeeder extends Seeder
             [
                 'display_order' => 1,
                 'status' => 'active',
+                'program_reference' => 'OMEN nr. 3393/28.02.2017',
+                'program_source_url' =>
+                    'https://www.edu.ro/Ordin_ministru_3393_2017',
+                'program_approved_at' => '2017-02-28',
             ]
         );
 
@@ -86,7 +92,8 @@ class OpenEduMvpSeeder extends Seeder
             ['code' => 'linear-equations'],
             [
                 'title' => 'Ecuații de gradul I',
-                'description' => 'Introducere în ecuațiile de gradul I cu o necunoscută.',
+                'description' =>
+                    'Introducere în ecuațiile de gradul I cu o necunoscută.',
                 'status' => 'active',
             ]
         );
@@ -101,6 +108,96 @@ class OpenEduMvpSeeder extends Seeder
                 'is_core' => true,
             ]
         );
+
+        $generalCompetencies = [
+            '1' => 'Identificarea datelor și relațiilor matematice',
+            '2' => 'Prelucrarea datelor matematice',
+            '3' => 'Utilizarea conceptelor și algoritmilor matematici',
+            '4' => 'Exprimarea demersurilor de rezolvare',
+            '5' => 'Analizarea situațiilor matematice',
+            '6' => 'Modelarea matematică a situațiilor date',
+        ];
+
+        $generalModels = [];
+
+        foreach ($generalCompetencies as $code => $title) {
+            $generalModels[$code] = Competency::updateOrCreate(
+                [
+                    'curriculum_subject_id' => $curriculumSubject->id,
+                    'code' => $code,
+                ],
+                [
+                    'parent_competency_id' => null,
+                    'type' => 'general',
+                    'title' => $title,
+                    'description' => null,
+                    'display_order' => (int) $code,
+                    'status' => 'active',
+                ]
+            );
+        }
+
+        $specificCompetencies = [
+            '1.2' => [
+                'parent' => '1',
+                'title' =>
+                    'Identificarea situațiilor rezolvabile prin ecuații sau sisteme liniare',
+            ],
+            '2.2' => [
+                'parent' => '2',
+                'title' =>
+                    'Verificarea soluțiilor ecuațiilor și sistemelor liniare',
+            ],
+            '3.2' => [
+                'parent' => '3',
+                'title' =>
+                    'Utilizarea transformărilor echivalente în rezolvarea ecuațiilor',
+            ],
+            '4.2' => [
+                'parent' => '4',
+                'title' =>
+                    'Redactarea rezolvării ecuațiilor și sistemelor liniare',
+            ],
+            '5.2' => [
+                'parent' => '5',
+                'title' =>
+                    'Stabilirea metodelor de rezolvare pentru ecuații și sisteme',
+            ],
+            '6.2' => [
+                'parent' => '6',
+                'title' =>
+                    'Modelarea situațiilor folosind ecuații și sisteme liniare',
+            ],
+        ];
+
+        foreach ($specificCompetencies as $code => $data) {
+            $specific = Competency::updateOrCreate(
+                [
+                    'curriculum_subject_id' => $curriculumSubject->id,
+                    'code' => $code,
+                ],
+                [
+                    'parent_competency_id' =>
+                        $generalModels[$data['parent']]->id,
+                    'type' => 'specific',
+                    'title' => $data['title'],
+                    'description' => null,
+                    'display_order' => 2,
+                    'status' => 'active',
+                ]
+            );
+
+            CompetencyConcept::updateOrCreate(
+                [
+                    'competency_id' => $specific->id,
+                    'concept_id' => $concept->id,
+                ],
+                [
+                    'display_order' => 1,
+                    'is_core' => true,
+                ]
+            );
+        }
 
         $resource = Resource::updateOrCreate(
             ['code' => 'linear-equations-introduction'],
@@ -117,7 +214,8 @@ class OpenEduMvpSeeder extends Seeder
             ],
             [
                 'title' => 'Ecuațiile de gradul I explicate simplu',
-                'summary' => 'O introducere intuitivă în ecuațiile de gradul I.',
+                'summary' =>
+                    'O introducere intuitivă în ecuațiile de gradul I.',
                 'content' => <<<'TEXT'
 O ecuație poate fi privită ca o balanță.
 
