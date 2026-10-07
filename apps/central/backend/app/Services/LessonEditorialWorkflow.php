@@ -54,6 +54,7 @@ class LessonEditorialWorkflow
     private function markSubmitted(LessonVersion $version): void
     {
         $version->submitted_at = now();
+        $version->review_round = ((int) $version->review_round) + 1;
     }
 
     private function markReviewed(

@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'estimated_duration_minutes',
     'language_code',
     'status',
+    'review_round',
     'published_at',
     'created_by',
     'submitted_at',
@@ -64,11 +65,22 @@ class LessonVersion extends Model
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(LessonVersionReview::class);
+    }
+
+    public function reputationEvents(): HasMany
+    {
+        return $this->hasMany(ReputationEvent::class);
+    }
+
     protected function casts(): array
     {
         return [
             'learning_objectives' => 'array',
             'status' => LessonVersionStatus::class,
+            'review_round' => 'integer',
             'published_at' => 'datetime',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',

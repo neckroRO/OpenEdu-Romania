@@ -1,6 +1,8 @@
 <?php
 
 use App\Exceptions\InvalidEditorialTransitionException;
+use App\Exceptions\PedagogicalReviewException;
+use App\Exceptions\PedagogicalValidationException;
 use App\Http\Middleware\RequestId;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
@@ -27,7 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request): bool =>
-                $request->is('api/*') || $request->expectsJson()
+                $request->is('api/*')
+                || $request->expectsJson()
         );
 
         $exceptions->render(function (
@@ -109,22 +112,50 @@ return Application::configure(basePath: dirname(__DIR__))
             );
         });
 
+        $exceptions->render(function (
+            InvalidEditorialTransitionException $exception,
+            Request $request
+        ) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
 
-$exceptions->render(function (
-    InvalidEditorialTransitionException $exception,
-    Request $request
-) {
-    if (! $request->is('api/*')) {
-        return null;
-    }
+            return ApiResponse::error(
+                code: 'INVALID_EDITORIAL_TRANSITION',
+                message: $exception->getMessage(),
+                status: 409,
+            );
+        });
 
-    return ApiResponse::error(
-        code: 'INVALID_EDITORIAL_TRANSITION',
-        message: $exception->getMessage(),
-        status: 409,
-    );
-});
+        $exceptions->render(function (
+            PedagogicalReviewException $exception,
+            Request $request
+        ) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
 
+            return ApiResponse::error(
+                code: 'PEDAGOGICAL_REVIEW_CONFLICT',
+                message: $exception->getMessage(),
+                status: 409,
+            );
+        });
+
+        $exceptions->render(function (
+            PedagogicalValidationException $exception,
+            Request $request
+        ) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return ApiResponse::error(
+                code: 'PEDAGOGICAL_VALIDATION_CONFLICT',
+                message: $exception->getMessage(),
+                status: 409,
+            );
+        });
 
         $exceptions->render(function (
             \Throwable $exception,

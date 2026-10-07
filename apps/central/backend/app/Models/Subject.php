@@ -18,4 +18,14 @@ class Subject extends Model
     {
         return $this->hasMany(CurriculumSubject::class);
     }
+
+    public function userReputations(): HasMany
+    {
+        return $this->hasMany(UserSubjectReputation::class);
+    }
+
+    public function reputationEvents(): HasMany
+    {
+        return $this->hasMany(ReputationEvent::class);
+    }
 }

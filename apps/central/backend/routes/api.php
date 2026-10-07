@@ -1,22 +1,23 @@
 <?php
 
-use App\Http\Controllers\Api\V1\LessonController;
-use App\Http\Controllers\Api\V1\LessonConceptController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ConceptResourceController;
 use App\Http\Controllers\Api\V1\CurriculumImportController;
-use App\Http\Controllers\Api\V1\CurriculumSubjectConceptController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectCompetencyController;
+use App\Http\Controllers\Api\V1\CurriculumSubjectConceptController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectLessonController;
 use App\Http\Controllers\Api\V1\EducationLevelController;
 use App\Http\Controllers\Api\V1\EducationLevelSubjectController;
 use App\Http\Controllers\Api\V1\EditorialLessonIndexController;
 use App\Http\Controllers\Api\V1\EditorialResourceIndexController;
+use App\Http\Controllers\Api\V1\LessonConceptController;
+use App\Http\Controllers\Api\V1\LessonController;
 use App\Http\Controllers\Api\V1\LessonModerationQueueController;
 use App\Http\Controllers\Api\V1\LessonVersionController;
 use App\Http\Controllers\Api\V1\LessonVersionResourceController;
 use App\Http\Controllers\Api\V1\LessonVersionWorkflowController;
 use App\Http\Controllers\Api\V1\ModerationQueueController;
+use App\Http\Controllers\Api\V1\PedagogicalReviewController;
 use App\Http\Controllers\Api\V1\ResourceController;
 use App\Http\Controllers\Api\V1\ResourceIndexController;
 use App\Http\Controllers\Api\V1\ResourceVersionWorkflowController;
@@ -97,6 +98,21 @@ Route::middleware('auth:sanctum')
         Route::post(
             '/lesson-versions/{lessonVersion}/submit',
             [LessonVersionWorkflowController::class, 'submit']
+        );
+
+        Route::post(
+            '/lesson-versions/{lessonVersion}/reviews',
+            [PedagogicalReviewController::class, 'store']
+        );
+
+        Route::get(
+            '/lesson-versions/{lessonVersion}/reviews',
+            [PedagogicalReviewController::class, 'index']
+        );
+
+        Route::get(
+            '/lesson-versions/{lessonVersion}/consensus',
+            [PedagogicalReviewController::class, 'consensus']
         );
 
         Route::post(

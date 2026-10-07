@@ -221,6 +221,31 @@ class LessonVersionEndpointTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'submitted');
 
+        /*
+         * Runda 1:
+         * trei review-uri pedagogice înainte de decizia editorială.
+         */
+        for ($i = 0; $i < 3; $i++) {
+            $reviewer = User::factory()->create([
+                'role' => 'teacher',
+            ]);
+
+            Sanctum::actingAs($reviewer);
+
+            $this->postJson(
+                "/api/v1/lesson-versions/{$version->id}/reviews",
+                [
+                    'verdict' => 'changes_requested',
+                    'correctness_score' => 4,
+                    'curriculum_alignment_score' => 4,
+                    'clarity_score' => 3,
+                    'pedagogical_value_score' => 4,
+                    'difficulty_fit_score' => 4,
+                    'comment' => 'Sunt necesare clarificări.',
+                ]
+            )->assertCreated();
+        }
+
         Sanctum::actingAs($moderator);
 
         $this->postJson(
@@ -250,6 +275,30 @@ class LessonVersionEndpointTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'submitted');
 
+        /*
+         * Runda 2:
+         * trei review-uri noi înainte de aprobare.
+         */
+        for ($i = 0; $i < 3; $i++) {
+            $reviewer = User::factory()->create([
+                'role' => 'teacher',
+            ]);
+
+            Sanctum::actingAs($reviewer);
+
+            $this->postJson(
+                "/api/v1/lesson-versions/{$version->id}/reviews",
+                [
+                    'verdict' => 'approve',
+                    'correctness_score' => 5,
+                    'curriculum_alignment_score' => 5,
+                    'clarity_score' => 5,
+                    'pedagogical_value_score' => 5,
+                    'difficulty_fit_score' => 5,
+                ]
+            )->assertCreated();
+        }
+
         Sanctum::actingAs($moderator);
 
         $this->postJson(
@@ -271,10 +320,32 @@ class LessonVersionEndpointTest extends TestCase
             $version->status
         );
 
+        $this->assertSame(2, $version->review_round);
+
         $this->assertNotNull($version->published_at);
+
         $this->assertSame(
             $moderator->id,
             $version->reviewed_by
+        );
+
+        $this->assertSame(
+            6,
+            $version->reviews()->count()
+        );
+
+        $this->assertSame(
+            3,
+            $version->reviews()
+                ->where('review_round', 1)
+                ->count()
+        );
+
+        $this->assertSame(
+            3,
+            $version->reviews()
+                ->where('review_round', 2)
+                ->count()
         );
     }
 

@@ -50,6 +50,27 @@ class LessonVersionPolicy
             && $version->created_by === $user->id;
     }
 
+    public function review(
+        User $user,
+        LessonVersion $version
+    ): bool {
+        return $user->role->canContribute();
+    }
+
+    public function viewPedagogicalReviews(
+        User $user,
+        LessonVersion $version
+    ): bool {
+        return $user->role->canModerate();
+    }
+
+    public function viewPedagogicalConsensus(
+        User $user,
+        LessonVersion $version
+    ): bool {
+        return $user->role->canModerate();
+    }
+
     public function approve(
         User $user,
         LessonVersion $version
