@@ -23,6 +23,11 @@ class Lesson extends Model
         return $this->belongsTo(CurriculumSubject::class);
     }
 
+    public function versions(): HasMany
+    {
+        return $this->hasMany(LessonVersion::class);
+    }
+
     public function lessonCompetencies(): HasMany
     {
         return $this->hasMany(LessonCompetency::class);

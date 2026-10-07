@@ -2,14 +2,14 @@
 
 namespace App\Exceptions;
 
-use App\Enums\ResourceVersionStatus;
+use BackedEnum;
 use RuntimeException;
 
 class InvalidEditorialTransitionException extends RuntimeException
 {
     public function __construct(
-        ResourceVersionStatus $from,
-        ResourceVersionStatus $to
+        BackedEnum $from,
+        BackedEnum $to
     ) {
         parent::__construct(
             sprintf(

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\LessonController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ConceptResourceController;
 use App\Http\Controllers\Api\V1\CurriculumImportController;
@@ -8,7 +9,11 @@ use App\Http\Controllers\Api\V1\CurriculumSubjectCompetencyController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectLessonController;
 use App\Http\Controllers\Api\V1\EducationLevelController;
 use App\Http\Controllers\Api\V1\EducationLevelSubjectController;
+use App\Http\Controllers\Api\V1\EditorialLessonIndexController;
 use App\Http\Controllers\Api\V1\EditorialResourceIndexController;
+use App\Http\Controllers\Api\V1\LessonModerationQueueController;
+use App\Http\Controllers\Api\V1\LessonVersionController;
+use App\Http\Controllers\Api\V1\LessonVersionWorkflowController;
 use App\Http\Controllers\Api\V1\ModerationQueueController;
 use App\Http\Controllers\Api\V1\ResourceController;
 use App\Http\Controllers\Api\V1\ResourceIndexController;
@@ -48,6 +53,16 @@ Route::middleware('auth:sanctum')
         );
 
         Route::get(
+            '/editor/lessons',
+            EditorialLessonIndexController::class
+        );
+
+        Route::get(
+            '/editor/lesson-moderation',
+            LessonModerationQueueController::class
+        );
+
+        Route::get(
             '/editor/moderation',
             ModerationQueueController::class
         );
@@ -55,6 +70,41 @@ Route::middleware('auth:sanctum')
         Route::post(
             '/resources',
             [ResourceController::class, 'store']
+        );
+
+        Route::post(
+            '/lessons/{lesson}/versions',
+            [LessonVersionController::class, 'store']
+        );
+
+        Route::patch(
+            '/lesson-versions/{lessonVersion}',
+            [LessonVersionController::class, 'update']
+        );
+
+        Route::post(
+            '/lesson-versions/{lessonVersion}/submit',
+            [LessonVersionWorkflowController::class, 'submit']
+        );
+
+        Route::post(
+            '/lesson-versions/{lessonVersion}/approve',
+            [LessonVersionWorkflowController::class, 'approve']
+        );
+
+        Route::post(
+            '/lesson-versions/{lessonVersion}/reject',
+            [LessonVersionWorkflowController::class, 'reject']
+        );
+
+        Route::post(
+            '/lesson-versions/{lessonVersion}/publish',
+            [LessonVersionWorkflowController::class, 'publish']
+        );
+
+        Route::post(
+            '/lesson-versions/{lessonVersion}/revise',
+            [LessonVersionWorkflowController::class, 'revise']
         );
 
         Route::patch(
@@ -98,6 +148,11 @@ Route::get(
 Route::get(
     '/resources/{resource}',
     [ResourceController::class, 'show']
+);
+
+Route::get(
+    '/lessons/{lesson}',
+    [LessonController::class, 'show']
 );
 
 Route::get(
