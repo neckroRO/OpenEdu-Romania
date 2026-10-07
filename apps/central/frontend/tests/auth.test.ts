@@ -191,17 +191,18 @@ describe('auth store', () => {
   })
 
   it.each([
-    ['learner', false, false],
-    ['guardian', false, false],
-    ['teacher', true, false],
-    ['moderator', true, true],
-    ['admin', true, true],
+    ['learner', false, false, false],
+    ['guardian', false, false, false],
+    ['teacher', true, false, false],
+    ['moderator', true, true, false],
+    ['admin', true, true, true],
   ] as const)(
     'aplică permisiunile corecte pentru rolul %s',
     (
       role,
       canContribute,
       canModerate,
+      canAdmin,
     ) => {
       const store = useAuthStore()
 
@@ -214,6 +215,10 @@ describe('auth store', () => {
       )
       expect(store.canModerate).toBe(
         canModerate,
+      )
+
+      expect(store.canAdmin).toBe(
+        canAdmin,
       )
     },
   )
