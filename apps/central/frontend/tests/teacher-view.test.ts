@@ -385,6 +385,54 @@ describe('TeacherView', () => {
     )
   })
 
+  it('butonul Resursă nouă resetează editorul și derulează la formular', async () => {
+    const {
+      wrapper,
+    } = await mountTeacher()
+
+    const editor = wrapper
+      .get('#teacher-editor')
+      .element
+
+    const querySelectorSpy = vi
+      .spyOn(document, 'querySelector')
+      .mockReturnValue(editor)
+
+    const titleInput = wrapper.get(
+      'input[placeholder="Titlul resursei"]',
+    )
+
+    await titleInput.setValue(
+      'Titlu temporar',
+    )
+
+    await wrapper
+      .get('.teacher-new-button')
+      .trigger('click')
+
+    await flushPromises()
+
+    expect(
+      (
+        wrapper.get(
+          'input[placeholder="Titlul resursei"]',
+        ).element as HTMLInputElement
+      ).value,
+    ).toBe('')
+
+    expect(
+      querySelectorSpy,
+    ).toHaveBeenCalledWith(
+      '#teacher-editor',
+    )
+
+    expect(
+      Element.prototype.scrollIntoView,
+    ).toHaveBeenCalled()
+
+    querySelectorSpy.mockRestore()
+  })
+
   it('validează titlul înainte de crearea unui draft', async () => {
     const {
       wrapper,

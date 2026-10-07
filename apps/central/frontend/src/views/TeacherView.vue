@@ -266,6 +266,19 @@ function resetForm(): void {
   clearConceptSelection()
 }
 
+function startCreate(): void {
+  resetForm()
+
+  requestAnimationFrame(() => {
+    document
+      .querySelector('#teacher-editor')
+      ?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+  })
+}
+
 function startEdit(resource: EditorialResource): void {
   if (
     !resource.version ||
@@ -511,7 +524,7 @@ onMounted(() => {
       <button
         type="button"
         class="teacher-new-button"
-        @click="resetForm"
+        @click="startCreate"
       >
         + Resursă nouă
       </button>
