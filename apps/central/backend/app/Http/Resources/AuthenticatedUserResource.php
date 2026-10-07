@@ -14,6 +14,7 @@ class AuthenticatedUserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role->value,
+            'is_active' => (bool) $this->is_active,
         ];
     }
 }

@@ -32,6 +32,14 @@ class AuthController extends Controller
             );
         }
 
+        if (! $user->is_active) {
+            return ApiResponse::error(
+                code: 'ACCOUNT_INACTIVE',
+                message: 'Contul este dezactivat.',
+                status: 403,
+            );
+        }
+
         $expiresAt = now()->addDays(30);
 
         $token = $user->createToken(

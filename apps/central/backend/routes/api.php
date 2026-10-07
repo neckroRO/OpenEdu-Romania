@@ -56,6 +56,11 @@ Route::middleware('auth:sanctum')
             [AdminUserController::class, 'store']
         );
 
+        Route::patch(
+            '/admin/users/{user}',
+            [AdminUserController::class, 'update']
+        );
+
         Route::post(
             '/admin/curriculum/import',
             CurriculumImportController::class
