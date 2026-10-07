@@ -140,9 +140,8 @@ Aplicația mobilă dedicată, grupurile de lucru, votul/reputația profesorilor 
 | `apps/central/frontend/` | Interfața aplicației centrale și teste frontend |
 | `infra/compose.dev.yml` | Serviciul PostgreSQL pentru dezvoltare |
 | `infra/.env.example` | Exemplu de configurare a bazei de date |
-| `admin/`, `index.php`, `connection.php`, `openedu.sql` | Prototipul istoric din 2020 |
-
-Aplicația actuală se dezvoltă în `apps/central/`. Fișierele prototipului istoric nu reprezintă punctul de pornire al noii aplicații.
+ 
+Aplicația actuală se dezvoltă în `apps/central/`. Prototipul original OpenEdu din 2020 rămâne disponibil în istoricul Git al repository-ului.
 
 ## Pornire pentru dezvoltare
 
