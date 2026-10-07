@@ -37,6 +37,15 @@ const authStore = useAuthStore()
         <span class="nav-icon">✓</span>
         <span>Moderare</span>
       </RouterLink>
+
+      <RouterLink
+        v-if="authStore.canAdmin"
+        to="/admin/users"
+        class="nav-item"
+      >
+        <span class="nav-icon">⚙</span>
+        <span>Utilizatori</span>
+      </RouterLink>
     </nav>
 
     <div class="sidebar-footer">

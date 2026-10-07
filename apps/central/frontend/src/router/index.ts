@@ -43,6 +43,15 @@ const router = createRouter({
             requiresModerator: true,
           },
         },
+        {
+          path: 'admin/users',
+          name: 'admin-users',
+          component: () => import('../views/AdminUsersView.vue'),
+          meta: {
+            requiresAuth: true,
+            requiresAdmin: true,
+          },
+        },
       ],
     },
     {
@@ -67,6 +76,19 @@ router.beforeEach(async (to) => {
       query: {
         redirect: to.fullPath,
       },
+    }
+  }
+
+  if (
+    to.meta.requiresAdmin &&
+    !authStore.canAdmin
+  ) {
+    return {
+      name: authStore.canModerate
+        ? 'moderation'
+        : authStore.canContribute
+          ? 'teacher'
+          : 'home',
     }
   }
 

@@ -36,6 +36,10 @@ export const useAuthStore = defineStore('auth', () => {
     ),
   )
 
+  const canAdmin = computed(
+    () => user.value?.role === 'admin',
+  )
+
   function clearSession(): void {
     token.value = null
     user.value = null
@@ -113,6 +117,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     canContribute,
     canModerate,
+    canAdmin,
     initialize,
     login,
     logout,

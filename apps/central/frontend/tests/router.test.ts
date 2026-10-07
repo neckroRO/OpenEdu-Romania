@@ -187,6 +187,68 @@ describe('route guards', () => {
     )
   })
 
+  describe('/admin/users', () => {
+    it('trimite vizitatorul neautentificat la login', async () => {
+      await router.push('/admin/users')
+
+      expect(
+        router.currentRoute.value.name,
+      ).toBe('login')
+
+      expect(
+        router.currentRoute.value.query,
+      ).toEqual({
+        redirect: '/admin/users',
+      })
+    })
+
+    it.each([
+      'learner',
+      'guardian',
+    ] as const)(
+      'refuză accesul rolului %s și îl trimite acasă',
+      async (role) => {
+        authenticateAs(role)
+
+        await router.push('/admin/users')
+
+        expect(
+          router.currentRoute.value.name,
+        ).toBe('home')
+      },
+    )
+
+    it('trimite profesorul către zona teacher', async () => {
+      authenticateAs('teacher')
+
+      await router.push('/admin/users')
+
+      expect(
+        router.currentRoute.value.name,
+      ).toBe('teacher')
+    })
+
+    it('trimite moderatorul către zona moderation', async () => {
+      authenticateAs('moderator')
+
+      await router.push('/admin/users')
+
+      expect(
+        router.currentRoute.value.name,
+      ).toBe('moderation')
+    })
+
+    it('permite accesul administratorului', async () => {
+      authenticateAs('admin')
+
+      await router.push('/admin/users')
+
+      expect(
+        router.currentRoute.value.name,
+      ).toBe('admin-users')
+    })
+  })
+
   describe('/login pentru utilizatori autentificați', () => {
     it.each([
       'learner',
