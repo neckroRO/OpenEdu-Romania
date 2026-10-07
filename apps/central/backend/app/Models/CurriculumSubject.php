@@ -13,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'subject_id',
     'display_order',
     'status',
+    'program_reference',
+    'program_source_url',
+    'program_approved_at',
 ])]
 class CurriculumSubject extends Model
 {
@@ -34,5 +37,17 @@ class CurriculumSubject extends Model
     public function domains(): HasMany
     {
         return $this->hasMany(Domain::class);
+    }
+
+    public function competencies(): HasMany
+    {
+        return $this->hasMany(Competency::class);
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'program_approved_at' => 'date',
+        ];
     }
 }

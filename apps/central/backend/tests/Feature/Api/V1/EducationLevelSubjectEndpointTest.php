@@ -49,6 +49,10 @@ class EducationLevelSubjectEndpointTest extends TestCase
             'subject_id' => $subject->id,
             'display_order' => 1,
             'status' => 'active',
+            'program_reference' => 'OMEN nr. 3393/28.02.2017',
+            'program_source_url' =>
+                'https://www.edu.ro/Ordin_ministru_3393_2017',
+            'program_approved_at' => '2017-02-28',
         ]);
 
         $response = $this->getJson(
@@ -68,6 +72,18 @@ class EducationLevelSubjectEndpointTest extends TestCase
                 1
             )
             ->assertJsonPath(
+                'data.0.program.reference',
+                'OMEN nr. 3393/28.02.2017'
+            )
+            ->assertJsonPath(
+                'data.0.program.source_url',
+                'https://www.edu.ro/Ordin_ministru_3393_2017'
+            )
+            ->assertJsonPath(
+                'data.0.program.approved_at',
+                '2017-02-28'
+            )
+            ->assertJsonPath(
                 'data.0.subject.id',
                 $subject->id
             )
@@ -84,6 +100,11 @@ class EducationLevelSubjectEndpointTest extends TestCase
                     '*' => [
                         'id',
                         'display_order',
+                        'program' => [
+                            'reference',
+                            'source_url',
+                            'approved_at',
+                        ],
                         'subject' => [
                             'id',
                             'code',
