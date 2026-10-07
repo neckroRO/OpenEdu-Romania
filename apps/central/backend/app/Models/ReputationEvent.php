@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'subject_id',
     'event_type',
+    'event_key',
     'points',
     'lesson_version_id',
     'lesson_version_review_id',
