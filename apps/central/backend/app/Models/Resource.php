@@ -19,6 +19,27 @@ class Resource extends Model
         return $this->hasMany(ResourceVersion::class);
     }
 
+    public function lessonVersionResources(): HasMany
+    {
+        return $this->hasMany(
+            LessonVersionResource::class
+        );
+    }
+
+    public function lessonVersions(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            LessonVersion::class,
+            'lesson_version_resources'
+        )
+            ->withPivot([
+                'role',
+                'display_order',
+                'is_required',
+            ])
+            ->withTimestamps();
+    }
+
     public function resourceConcepts(): HasMany
     {
         return $this->hasMany(ResourceConcept::class);

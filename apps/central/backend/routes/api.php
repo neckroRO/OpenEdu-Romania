@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\LessonController;
+use App\Http\Controllers\Api\V1\LessonConceptController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ConceptResourceController;
 use App\Http\Controllers\Api\V1\CurriculumImportController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\V1\EditorialLessonIndexController;
 use App\Http\Controllers\Api\V1\EditorialResourceIndexController;
 use App\Http\Controllers\Api\V1\LessonModerationQueueController;
 use App\Http\Controllers\Api\V1\LessonVersionController;
+use App\Http\Controllers\Api\V1\LessonVersionResourceController;
 use App\Http\Controllers\Api\V1\LessonVersionWorkflowController;
 use App\Http\Controllers\Api\V1\ModerationQueueController;
 use App\Http\Controllers\Api\V1\ResourceController;
@@ -75,6 +77,16 @@ Route::middleware('auth:sanctum')
         Route::post(
             '/lessons/{lesson}/versions',
             [LessonVersionController::class, 'store']
+        );
+
+        Route::put(
+            '/lessons/{lesson}/concepts',
+            [LessonConceptController::class, 'update']
+        );
+
+        Route::put(
+            '/lesson-versions/{lessonVersion}/resources',
+            [LessonVersionResourceController::class, 'update']
         );
 
         Route::patch(
