@@ -35,6 +35,37 @@ class CurriculumImportCommandTest extends TestCase
         );
     }
 
+    public function test_command_dry_run_does_not_persist_changes(): void
+    {
+        $this->artisan(
+            'curriculum:import',
+            [
+                'path' =>
+                    'resources/curriculum-import/v1/examples/'
+                    .'ro-grade-7-mathematics.json',
+                '--dry-run' => true,
+            ]
+        )
+            ->expectsOutput(
+                'Curriculum dry-run completed successfully.'
+            )
+            ->expectsOutput(
+                'No database changes were persisted.'
+            )
+            ->assertSuccessful();
+
+        $this->assertDatabaseCount('curricula', 0);
+        $this->assertDatabaseCount('curriculum_versions', 0);
+        $this->assertDatabaseCount('education_levels', 0);
+        $this->assertDatabaseCount('subjects', 0);
+        $this->assertDatabaseCount('curriculum_subjects', 0);
+        $this->assertDatabaseCount('domains', 0);
+        $this->assertDatabaseCount('concepts', 0);
+        $this->assertDatabaseCount('concept_placements', 0);
+        $this->assertDatabaseCount('competencies', 0);
+        $this->assertDatabaseCount('competency_concepts', 0);
+    }
+
     public function test_command_rejects_missing_file(): void
     {
         $this->artisan(
@@ -97,6 +128,42 @@ class CurriculumImportCommandTest extends TestCase
                 ->assertFailed();
 
             $this->assertDatabaseCount('curricula', 0);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function test_dry_run_rejects_invalid_payload_without_writes(): void
+    {
+        $payload = $this->validPayload();
+
+        $payload['competencies'][1]['parent_code'] =
+            'missing-parent';
+
+        $path = $this->temporaryFile(
+            json_encode(
+                $payload,
+                JSON_THROW_ON_ERROR
+            )
+        );
+
+        try {
+            $this->artisan(
+                'curriculum:import',
+                [
+                    'path' => $path,
+                    '--dry-run' => true,
+                ]
+            )
+                ->expectsOutput(
+                    'Curriculum import validation failed.'
+                )
+                ->assertFailed();
+
+            $this->assertDatabaseCount('curricula', 0);
+            $this->assertDatabaseCount('domains', 0);
+            $this->assertDatabaseCount('concepts', 0);
+            $this->assertDatabaseCount('competencies', 0);
         } finally {
             @unlink($path);
         }
