@@ -8,6 +8,7 @@ use App\Http\Requests\RejectLessonVersionRequest;
 use App\Http\Resources\EditorialLessonVersionResource;
 use App\Models\LessonVersion;
 use App\Services\LessonEditorialWorkflow;
+use App\Services\PedagogicalValidationService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,14 +33,14 @@ class LessonVersionWorkflowController extends Controller
     public function approve(
         Request $request,
         LessonVersion $lessonVersion,
-        LessonEditorialWorkflow $workflow
+        PedagogicalValidationService $validation
     ): JsonResponse {
         Gate::authorize('approve', $lessonVersion);
 
-        $version = $workflow->transition(
+        $version = $validation->moderate(
             $lessonVersion,
-            LessonVersionStatus::Approved,
-            reviewedBy: $request->user()->id
+            $request->user(),
+            LessonVersionStatus::Approved
         );
 
         return $this->response($version);
@@ -48,31 +49,32 @@ class LessonVersionWorkflowController extends Controller
     public function reject(
         RejectLessonVersionRequest $request,
         LessonVersion $lessonVersion,
-        LessonEditorialWorkflow $workflow
+        PedagogicalValidationService $validation
     ): JsonResponse {
         Gate::authorize('reject', $lessonVersion);
 
         $validated = $request->validated();
 
-        $version = $workflow->transition(
+        $version = $validation->moderate(
             $lessonVersion,
+            $request->user(),
             LessonVersionStatus::Rejected,
-            reviewedBy: $request->user()->id,
-            reviewNote: $validated['review_note']
+            $validated['review_note']
         );
 
         return $this->response($version);
     }
 
     public function publish(
+        Request $request,
         LessonVersion $lessonVersion,
-        LessonEditorialWorkflow $workflow
+        PedagogicalValidationService $validation
     ): JsonResponse {
         Gate::authorize('publish', $lessonVersion);
 
-        $version = $workflow->transition(
+        $version = $validation->publish(
             $lessonVersion,
-            LessonVersionStatus::Published
+            $request->user()
         );
 
         return $this->response($version);

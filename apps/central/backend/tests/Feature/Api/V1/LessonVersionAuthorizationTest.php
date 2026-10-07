@@ -125,6 +125,26 @@ class LessonVersionAuthorizationTest extends TestCase
             'submitted'
         );
 
+        for ($i = 0; $i < 3; $i++) {
+            $reviewer = User::factory()->create([
+                'role' => 'teacher',
+            ]);
+
+            Sanctum::actingAs($reviewer);
+
+            $this->postJson(
+                "/api/v1/lesson-versions/{$version->id}/reviews",
+                [
+                    'verdict' => 'approve',
+                    'correctness_score' => 5,
+                    'curriculum_alignment_score' => 5,
+                    'clarity_score' => 5,
+                    'pedagogical_value_score' => 5,
+                    'difficulty_fit_score' => 5,
+                ]
+            )->assertCreated();
+        }
+
         Sanctum::actingAs($moderator);
 
         $this->postJson(
@@ -188,6 +208,10 @@ class LessonVersionAuthorizationTest extends TestCase
             'content' => 'Conținut',
             'language_code' => 'ro',
             'status' => $status,
+            'review_round' =>
+                $status === 'submitted'
+                    ? 1
+                    : 0,
             'created_by' => $creator->id,
             'submitted_at' =>
                 $status === 'submitted'
