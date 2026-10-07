@@ -55,4 +55,19 @@ class Competency extends Model
             ->withPivot(['display_order', 'is_core'])
             ->withTimestamps();
     }
+
+    public function lessonCompetencies(): HasMany
+    {
+        return $this->hasMany(LessonCompetency::class);
+    }
+
+    public function lessons(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Lesson::class,
+            'lesson_competencies'
+        )
+            ->withPivot(['display_order', 'is_core'])
+            ->withTimestamps();
+    }
 }

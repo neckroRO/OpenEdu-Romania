@@ -44,6 +44,11 @@ class CurriculumSubject extends Model
         return $this->hasMany(Competency::class);
     }
 
+    public function lessons(): HasMany
+    {
+        return $this->hasMany(Lesson::class);
+    }
+
     protected function casts(): array
     {
         return [

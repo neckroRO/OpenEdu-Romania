@@ -11,6 +11,8 @@ use App\Models\CurriculumSubject;
 use App\Models\CurriculumVersion;
 use App\Models\Domain;
 use App\Models\EducationLevel;
+use App\Models\Lesson;
+use App\Models\LessonCompetency;
 use App\Models\Resource;
 use App\Models\ResourceConcept;
 use App\Models\ResourceVersion;
@@ -170,6 +172,8 @@ class OpenEduMvpSeeder extends Seeder
             ],
         ];
 
+        $specificModels = [];
+
         foreach ($specificCompetencies as $code => $data) {
             $specific = Competency::updateOrCreate(
                 [
@@ -187,6 +191,8 @@ class OpenEduMvpSeeder extends Seeder
                 ]
             );
 
+            $specificModels[$code] = $specific;
+
             CompetencyConcept::updateOrCreate(
                 [
                     'competency_id' => $specific->id,
@@ -194,6 +200,35 @@ class OpenEduMvpSeeder extends Seeder
                 ],
                 [
                     'display_order' => 1,
+                    'is_core' => true,
+                ]
+            );
+        }
+
+        $lesson = Lesson::updateOrCreate(
+            [
+                'curriculum_subject_id' => $curriculumSubject->id,
+                'code' => 'linear-equations-basics',
+            ],
+            [
+                'title' => 'Ecuații de gradul I',
+                'description' =>
+                    'Introducere în rezolvarea ecuațiilor de gradul I.',
+                'display_order' => 1,
+                'status' => 'active',
+            ]
+        );
+
+        foreach (
+            array_keys($specificCompetencies) as $index => $code
+        ) {
+            LessonCompetency::updateOrCreate(
+                [
+                    'lesson_id' => $lesson->id,
+                    'competency_id' => $specificModels[$code]->id,
+                ],
+                [
+                    'display_order' => $index + 1,
                     'is_core' => true,
                 ]
             );
