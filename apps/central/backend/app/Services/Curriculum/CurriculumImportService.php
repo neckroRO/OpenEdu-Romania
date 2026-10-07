@@ -13,6 +13,7 @@ use App\Models\Domain;
 use App\Models\EducationLevel;
 use App\Models\Subject;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class CurriculumImportService
 {
@@ -68,6 +69,23 @@ class CurriculumImportService
                 'competencies' => count($competencies),
             ];
         });
+    }
+
+    public function dryRun(array $payload): array
+    {
+        DB::beginTransaction();
+
+        try {
+            $result = $this->import($payload);
+
+            DB::rollBack();
+
+            return $result;
+        } catch (Throwable $exception) {
+            DB::rollBack();
+
+            throw $exception;
+        }
     }
 
     private function importCurriculum(array $data): Curriculum

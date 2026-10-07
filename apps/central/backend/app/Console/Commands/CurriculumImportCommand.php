@@ -4,10 +4,8 @@ namespace App\Console\Commands;
 
 use App\Services\Curriculum\CurriculumImportService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use JsonException;
-use Throwable;
 
 class CurriculumImportCommand extends Command
 {
@@ -81,22 +79,12 @@ class CurriculumImportCommand extends Command
         CurriculumImportService $importService,
         array $payload
     ): int {
-        DB::beginTransaction();
-
         try {
-            $result = $importService->import($payload);
-
-            DB::rollBack();
+            $result = $importService->dryRun($payload);
         } catch (ValidationException $exception) {
-            DB::rollBack();
-
             return $this->renderValidationFailure(
                 $exception
             );
-        } catch (Throwable $exception) {
-            DB::rollBack();
-
-            throw $exception;
         }
 
         $this->info(
