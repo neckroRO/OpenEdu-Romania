@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ResetAdminUserPasswordRequest;
 use App\Http\Requests\StoreAdminUserRequest;
 use App\Http\Requests\UpdateAdminUserRequest;
 use App\Http\Resources\AuthenticatedUserResource;
@@ -126,6 +127,24 @@ class AdminUserController extends Controller
             (new AuthenticatedUserResource($user))
                 ->resolve()
         );
+    }
+
+    public function resetPassword(
+        ResetAdminUserPasswordRequest $request,
+        User $user
+    ): JsonResponse {
+        $this->ensureCentralUser($user);
+
+        $validated = $request->validated();
+
+        $user->password = $validated['password'];
+        $user->save();
+
+        $user->tokens()->delete();
+
+        return ApiResponse::success([
+            'message' => 'Parola utilizatorului a fost resetată.',
+        ]);
     }
 
     private function authorizeAdmin(Request $request): void

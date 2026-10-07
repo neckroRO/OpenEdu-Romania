@@ -61,6 +61,11 @@ Route::middleware('auth:sanctum')
             [AdminUserController::class, 'update']
         );
 
+        Route::put(
+            '/admin/users/{user}/password',
+            [AdminUserController::class, 'resetPassword']
+        );
+
         Route::post(
             '/admin/curriculum/import',
             CurriculumImportController::class
