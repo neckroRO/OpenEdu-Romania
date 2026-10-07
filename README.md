@@ -1,153 +1,871 @@
 # OpenEdu-Romania
 
-**O platformă educațională pentru învățământul românesc, construită în jurul înțelegerii, accesului la resurse și colaborării.**
+> **Aceeași lecție. Mai multe moduri de a o înțelege.**
 
-OpenEdu-Romania își propune să sprijine elevii și profesorii prin materiale organizate după programa școlară, explicații alternative și, în etapele următoare, activități interactive și instrumente de lucru pentru școli.
+**OpenEdu-Romania este o platformă educațională construită pentru elevii care au nevoie de o explicație diferită pentru a înțelege o lecție.**
 
-Proiectul a pornit în 2020, în contextul pandemiei, din nevoia de continuitate a învățării. În 2026, dezvoltarea a fost reluată prin reconstruirea aplicației pe o arhitectură modernă, păstrând ideea de la care a pornit: **niciun copil să nu fie lăsat în urmă, iar învățarea să urmărească înțelegerea și aplicarea cunoștințelor.**
+Un profesor poate explica excelent pentru o parte dintre elevi și mai puțin potrivit pentru alții. Alt profesor poate folosi alte exemple, o reprezentare vizuală, un video, un exercițiu interactiv sau pur și simplu alte cuvinte.
 
-> **Milestone — octombrie 2026:** aplicația centrală are un flux funcțional de la navigarea în catalog până la crearea, moderarea și publicarea resurselor. Backendul și frontendul sunt integrate în `master`. Proiectul este în dezvoltare; acest milestone nu reprezintă încă platforma completă pentru școli sau un serviciu național lansat în producție.
+OpenEdu își propune să aducă aceste explicații împreună.
+
+Nu căutăm o singură „lecție perfectă”. Construim o platformă în care **mai mulți profesori pot crea abordări diferite ale aceleiași teme**, iar elevul poate găsi explicația care îl ajută să înțeleagă.
+
+Proiectul a pornit în 2020, în contextul pandemiei, și a fost reluat în 2026 prin reconstruirea completă a aplicației pe o arhitectură modernă.
+
+Principiul de la care proiectul nu se abate este simplu:
+
+> **Niciun copil nu ar trebui să rămână în urmă doar pentru că prima explicație nu a fost cea potrivită pentru el.**
+
+---
+
+## Stadiul proiectului
+
+OpenEdu-Romania este în dezvoltare activă.
+
+În octombrie 2026, aplicația centrală dispune deja de un nucleu funcțional care include:
+
+- catalog educațional;
+- structură curriculară;
+- concepte și resurse educaționale;
+- model de lecții;
+- versiuni editoriale;
+- flux profesor → moderare → publicare;
+- validare pedagogică și reputație;
+- autentificare și roluri;
+- administrarea utilizatorilor centrali;
+- interfață web funcțională;
+- API versionat;
+- suite automate de teste backend și frontend.
+
+La momentul acestei actualizări:
+
+- **217 teste backend** trec cu succes;
+- **128 teste frontend** trec cu succes;
+- build-ul frontend este verificat;
+- fluxurile principale au fost testate și manual în browser.
+
+Acesta este un milestone de dezvoltare, nu o lansare publică și nu reprezintă încă o platformă pregătită pentru utilizarea cu date reale ale elevilor.
+
+---
 
 ## Cuprins
 
-- [Viziune și principii](#viziune-și-principii)
-- [Abordarea educațională](#abordarea-educațională)
+- [De ce există OpenEdu](#de-ce-există-openedu)
+- [Cum vede OpenEdu o lecție](#cum-vede-openedu-o-lecție)
+- [Mai multe explicații pentru aceeași temă](#mai-multe-explicații-pentru-aceeași-temă)
+- [Curriculum flexibil și colaborativ](#curriculum-flexibil-și-colaborativ)
+- [Validare și contribuții](#validare-și-contribuții)
+- [Arhitectură: OpenEdu Central și OpenEdu Local](#arhitectură-openedu-central-și-openedu-local)
 - [Ce funcționează acum](#ce-funcționează-acum)
-- [Arhitectură: conținut comun, date locale](#arhitectură-conținut-comun-date-locale)
-- [Resurse și validare editorială](#resurse-și-validare-editorială)
-- [Milestone și direcții de dezvoltare](#milestone-și-direcții-de-dezvoltare)
-- [Tehnologii și structura repository-ului](#tehnologii-și-structura-repository-ului)
+- [Roadmap](#roadmap)
+- [Editorul de lecții](#editorul-de-lecții)
+- [Tehnologii](#tehnologii)
+- [Structura repository-ului](#structura-repository-ului)
 - [Pornire pentru dezvoltare](#pornire-pentru-dezvoltare)
 - [Contribuții](#contribuții)
-- [Q&A — întrebări și răspunsuri](#qa--întrebări-și-răspunsuri)
+- [Q&A](#qa)
 - [Licențiere și drepturile asupra materialelor](#licențiere-și-drepturile-asupra-materialelor)
 
-## Viziune și principii
+---
 
-OpenEdu-Romania este gândit pentru elevi, profesori, părinți și instituții de învățământ. Beneficiarii principali sunt copiii.
+## De ce există OpenEdu
 
-Obiectivele proiectului sunt:
+OpenEdu a pornit de la o situație foarte simplă.
 
-- **Continuitatea învățării:** un elev absent să poată accesa explicațiile și materialele relevante pentru ceea ce se studiază la clasă.
-- **Înțelegere și aplicare:** explicații, exemple și activități care ajută elevul să folosească ceea ce învață.
-- **Acces la explicații diferite:** același concept poate fi explicat în mai multe moduri, pentru nevoi și ritmuri diferite.
-- **Conținut verificat:** resursele trec printr-un proces editorial înainte de publicare.
-- **Autonomie pentru școli:** arhitectura urmărește separarea resurselor comune de datele gestionate de fiecare instituție.
-- **Dezvoltare deschisă și transparentă:** codul, deciziile și progresul pot fi urmărite public.
+Un copil participă la o lecție.
 
-Platforma completează activitatea de la clasă. Relația dintre elev și profesor, interacțiunea directă și viața școlară rămân esențiale.
+Profesorul explică.
 
-## Abordarea educațională
+Copilul nu înțelege.
 
-Punctul de plecare pentru organizarea conținutului este **programa școlară din România**, cu competențele și conținuturile ei. Manualele avizate sunt resurse de referință; platforma nu trebuie să depindă de ordinea capitolelor sau de explicațiile unui singur manual.
+Ajunge acasă și încearcă să găsească o explicație diferită.
 
-În discuțiile proiectului, Estonia a fost aleasă ca reper european pentru explorarea unei abordări care pune accent pe înțelegere, autonomie și utilizarea instrumentelor digitale. Direcția urmărită este adaptarea unor practici potrivite la contextul românesc. Proiectarea concretă a lecțiilor și validarea pedagogică vor fi realizate împreună cu profesori.
+Problema nu înseamnă neapărat că profesorul a explicat greșit sau că elevul nu poate înțelege. Uneori pur și simplu **modul în care a fost prezentată informația nu a rezonat cu acel elev**.
 
-Catalogul actual permite navigarea:
+De aici pornește OpenEdu.
 
-**Nivel educațional → Materie → Concept → Resurse asociate**
+Pentru aceeași temă pot exista:
 
-Un concept poate avea mai multe resurse: explicații, exemple, exerciții sau trimiteri către materiale externe. Resursele au metadate separate pentru dificultate și complexitate, astfel încât să poată fi căutate și filtrate.
+- o explicație foarte vizuală;
+- o explicație pas cu pas;
+- o explicație bazată pe exemple practice;
+- o explicație video;
+- o abordare bazată pe exerciții;
+- o prezentare foarte scurtă pentru recapitulare;
+- o lecție mai amplă pentru aprofundare.
 
-Acoperirea integrală a programei este un obiectiv pe termen lung. Datele demonstrative actuale sunt limitate și nu reprezintă o programă completă sau validată oficial.
+Toate pot fi corecte.
+
+Toate pot respecta aceeași programă.
+
+Dar una dintre ele poate face diferența pentru un anumit copil.
+
+OpenEdu nu urmărește să înlocuiască profesorul sau școala.
+
+**OpenEdu oferă elevului încă o șansă să înțeleagă.**
+
+---
+
+## Cum vede OpenEdu o lecție
+
+Structura urmărită separă trei lucruri care nu trebuie confundate:
+
+```text
+Concept curricular
+        ↓
+Lecții / explicații alternative
+        ↓
+Versiuni editoriale ale fiecărei lecții
+```
+
+De exemplu:
+
+```text
+Concept: Fracții
+│
+├── Lecție: Fracțiile explicate vizual
+│   ├── versiunea 1
+│   └── versiunea 2
+│
+├── Lecție: Fracțiile prin exemple din viața reală
+│   └── versiunea 1
+│
+├── Lecție: Fracțiile pas cu pas
+│   ├── versiunea 1
+│   └── versiunea 2
+│
+└── Lecție: Fracțiile prin video și exerciții
+    └── versiunea 1
+```
+
+Profesorii nu trebuie să se suprascrie unii pe alții.
+
+Un profesor poate crea propria explicație pentru un concept deja existent.
+
+Fiecare lecție are propriul autor, propriul conținut și propriul istoric de revizii.
+
+Astfel, diversitatea explicațiilor devine o caracteristică a platformei, nu o problemă care trebuie eliminată.
+
+---
+
+## Mai multe explicații pentru aceeași temă
+
+Elevul nu trebuie să primească doar o listă de fișiere.
+
+Experiența urmărită este mult mai apropiată de:
+
+```text
+Fracții
+
+Nu ai înțeles?
+Încearcă o altă explicație.
+
+→ Explicație vizuală
+→ Pas cu pas
+→ Exemple practice
+→ Video + exerciții
+→ Recapitulare rapidă
+```
+
+În viitor, lecțiile vor putea fi descrise prin caracteristici precum:
+
+- vizuală;
+- pas cu pas;
+- bazată pe exemple;
+- practică;
+- video;
+- interactivă;
+- recapitulare;
+- aprofundare.
+
+Aceste caracteristici nu definesc „tipuri de copii”.
+
+Ele descriu pur și simplu **moduri diferite de a explica același lucru**.
+
+O explicație mai puțin populară nu trebuie eliminată automat. Poate fi exact explicația care funcționează pentru un anumit elev.
+
+---
+
+## Curriculum flexibil și colaborativ
+
+Punctul de referință pentru organizarea conținutului este programa școlară.
+
+Manualele sunt resurse importante, dar OpenEdu nu trebuie să depindă de ordinea sau formularea unui singur manual.
+
+Modelul urmărit separă:
+
+```text
+Nivel / clasă
+    ↓
+Context curricular
+    ↓
+Materie
+    ↓
+Domeniu
+    ↓
+Concept / temă
+    ↓
+Lecții și resurse
+```
+
+### Concepte canonice
+
+Platforma trebuie să evite apariția unor structuri precum:
+
+```text
+Clasa a VIII-a
+Clasa VIII
+Clasa a 8-a
+VIII
+```
+
+sau:
+
+```text
+Limba română
+Lb. română
+Limba și literatura română
+```
+
+acolo unde denumirile reprezintă în realitate același lucru.
+
+OpenEdu va utiliza:
+
+- entități canonice;
+- denumiri normalizate;
+- aliasuri;
+- căutare după denumiri alternative;
+- propuneri de unificare;
+- audit al modificărilor.
+
+Aliasurile nu sunt considerate date inutile.
+
+Dacă `Lb. română` este un alias pentru `Limba și literatura română`, căutarea după termenul folosit de profesor trebuie să ducă în continuare la obiectul corect.
+
+### Propuneri din partea profesorilor
+
+Profesorii nu trebuie limitați exclusiv la structura existentă.
+
+Ei vor putea propune:
+
+- o clasă / un nivel nou;
+- o materie nouă;
+- un domeniu;
+- un concept sau o temă;
+- modificarea unei denumiri;
+- unificarea a două elemente care par duplicate.
+
+O propunere nu modifică automat nomenclatorul canonic.
+
+Ea intră într-un workflow de validare.
+
+Moderatorul sau administratorul poate:
+
+- aproba;
+- respinge motivat;
+- cere modificări;
+- corecta înainte de aprobare;
+- lega propunerea de un element existent;
+- aproba un merge.
+
+Profesorul trebuie să poată continua lucrul chiar dacă propunerea este încă în analiză. La aprobarea sau unificarea acesteia, relațiile vor putea fi mutate către obiectul canonic.
+
+### Variante și contexte educaționale
+
+Sistemul nu trebuie să conțină în cod o listă rigidă de metode sau alternative educaționale.
+
+Modelul trebuie să permită definirea de contexte educaționale noi fără modificarea aplicației.
+
+În interfață, un utilizator va putea indica opțional că o structură aparține unei variante educaționale față de programul de bază.
+
+Terminologia canonică trebuie să rămână neutră și suficient de generală pentru utilizare națională.
+
+Denumirile locale pot exista ca aliasuri sau etichete de prezentare.
+
+### Fără duplicarea inutilă a curriculumului
+
+O variantă educațională nu trebuie să ducă automat la duplicarea tuturor conceptelor.
+
+Dacă un concept este comun:
+
+```text
+Fracții
+```
+
+el trebuie să rămână un singur concept.
+
+Același concept poate avea mai multe plasări sau contexte curriculare.
+
+Diferențele specifice unui anumit program trebuie descrise doar acolo unde există cu adevărat.
+
+---
+
+## Validare și contribuții
+
+OpenEdu este construit în jurul contribuției profesorilor, dar publicarea conținutului trebuie să rămână controlată.
+
+Fluxul editorial actual include:
+
+```text
+draft
+  ↓
+submitted
+  ↓
+approved
+  ↓
+published
+```
+
+O contribuție poate fi și:
+
+```text
+submitted
+  ↓
+rejected
+  ↓
+draft
+```
+
+cu feedback din partea moderatorului.
+
+Modificarea unei resurse publicate nu trebuie să distrugă versiunea existentă.
+
+Noua variantă parcurge propriul proces editorial.
+
+Pe termen lung, reputația contributorilor și istoricul validărilor pot ajuta la prioritizarea procesului editorial, fără a elimina verificarea umană pentru modificările importante.
+
+Pentru fiecare modificare structurală trebuie păstrat un audit:
+
+- cine a propus-o;
+- cine a analizat-o;
+- ce s-a modificat;
+- când;
+- de ce;
+- ce relații au fost afectate.
+
+Merge-urile trebuie să fie inspectabile și proiectate astfel încât istoricul să nu fie pierdut.
+
+---
+
+## Arhitectură: OpenEdu Central și OpenEdu Local
+
+OpenEdu este proiectat în jurul separării dintre **conținutul educațional comun** și **datele elevilor și ale instituțiilor**.
+
+### OpenEdu Central
+
+OpenEdu Central gestionează:
+
+- curriculumul;
+- conceptele;
+- lecțiile;
+- resursele;
+- versiunile;
+- contribuțiile profesorilor;
+- validarea;
+- publicarea;
+- distribuirea conținutului educațional.
+
+### OpenEdu Local
+
+O instanță locală a unei școli va gestiona:
+
+- elevii;
+- tutorii;
+- clasele instituției;
+- activitățile locale;
+- progresul elevilor;
+- răspunsurile la quiz-uri;
+- rezultate;
+- date interne ale instituției.
+
+Principiul urmărit este:
+
+> **Conținutul educațional poate fi comun. Datele copilului rămân în responsabilitatea instituției care le gestionează.**
+
+Integrarea Central–Local, izolarea datelor, retenția, backup-ul, securitatea și conformitatea GDPR vor necesita implementare și verificare dedicate înaintea utilizării cu date reale.
+
+---
 
 ## Ce funcționează acum
 
-| Componentă | Funcționalitate existentă |
+| Componentă | Stadiu |
 | --- | --- |
-| Catalog educațional | Navigare prin niveluri, materii și concepte, cu acces la resursele asociate |
-| Catalog public de resurse | Căutare, filtrare, sortare și paginare |
-| Pagina resursei | Conținut textual, rezumat, metadate, versiune și legătură către sursa externă, când există |
-| Autentificare | Login, identificarea utilizatorului autentificat și logout prin Laravel Sanctum |
-| Roluri și autorizare | Permisiuni pe backend și protejarea rutelor frontend în funcție de rol |
-| Zona profesorului | Listarea resurselor accesibile, creare, editare și trimitere spre verificare |
-| Zona de moderare | Coada de verificare, aprobare, respingere motivată și publicare |
-| Versiuni editoriale | Gestionarea stărilor și a reviziilor resurselor |
-| Contract API | Endpointuri sub `/api/v1`, validare, răspunsuri și erori structurate, identificator de cerere |
-| Testare | Teste backend și frontend pentru contracte, autorizare, catalog și fluxuri editoriale |
+| Catalog educațional | Funcțional |
+| Niveluri, materii și concepte | Funcțional |
+| Import curricular | Implementat |
+| Resurse asociate conceptelor | Funcțional |
+| Catalog public | Funcțional |
+| Căutare, filtrare, sortare și paginare | Funcțional |
+| Pagina publică a resursei | Funcțional |
+| Modelul lecțiilor | Implementat |
+| Relații lecție–concept | Implementate |
+| Relații între versiuni de lecție și resurse | Implementate |
+| Autentificare | Funcțională |
+| Roluri și autorizare | Funcționale |
+| Zona profesorului | Funcțională |
+| Workflow editorial | Funcțional |
+| Moderare | Funcțională |
+| Publicare | Funcțională |
+| Validare pedagogică | Implementată |
+| Model de reputație | Implementat |
+| Administrarea utilizatorilor centrali | Funcțională |
+| Activare / dezactivare conturi | Funcțională |
+| Resetarea parolelor de către administrator | Funcțională |
+| Protecția rutelor frontend | Funcțională |
+| API `/api/v1` | Funcțional |
+| Testare backend | 217 teste |
+| Testare frontend | 128 teste |
+| Build frontend | Funcțional |
 
-Accesul public este limitat la resurse active cu versiune publicată. Autorizarea operațiilor editoriale este verificată pe server.
+Rolurile definite în prezent sunt:
 
-Rolurile definite sunt `learner`, `guardian`, `teacher`, `moderator` și `admin`. Definirea rolurilor de elev și părinte nu înseamnă că există deja module complete dedicate acestora.
+```text
+learner
+guardian
+teacher
+moderator
+admin
+```
 
-Exemplul demonstrativ inclus în proiect este **Clasa a VII-a → Matematică → Algebră → Ecuații de gradul I**, cu o resursă explicativă.
+Rolurile de elev și tutore există în model, dar modulele complete OpenEdu Local nu sunt încă implementate.
 
-## Arhitectură: conținut comun, date locale
+---
 
-Arhitectura țintă separă două responsabilități:
+## Roadmap
 
-| Componentă | Responsabilitate | Stadiu |
-| --- | --- | --- |
-| OpenEdu Central | Catalog curricular, resurse educaționale, contribuții și moderare | Nucleu funcțional |
-| Instanțele locale ale școlilor | Utilizatori locali, elevi, clase și activități ale instituției | Planificat |
-| Integrarea central–local | Distribuirea și actualizarea resurselor comune către instanțe | Planificat |
+Roadmap-ul descrie direcția actuală a proiectului și poate evolua pe măsură ce deciziile tehnice și pedagogice sunt validate.
+Roadmap-ul nu reprezintă doar o listă de funcționalități, ci ordinea în care OpenEdu evoluează de la un nucleu editorial funcțional către un ecosistem educațional complet.
 
-Ideea este ca instituțiile să poată utiliza aceeași bază de resurse, păstrând controlul asupra propriilor date și utilizatori. Modelul de instalare, sincronizarea și izolarea datelor trebuie implementate și verificate înaintea utilizării în școli.
+### Fundația proiectului — realizată
 
-Separarea central–local este o decizie de arhitectură. Conformitatea GDPR va necesita și reguli de acces, retenție, responsabilități, proceduri și verificări dedicate.
+#### 00 — Viziune și cerințe
 
-## Resurse și validare editorială
+- definirea scopului;
+- separarea dintre produs și prototipul din 2020;
+- stabilirea beneficiarilor;
+- principii educaționale.
 
-Fluxul implementat pentru versiunile resurselor este:
+#### 01 — Auditul prototipului 2020
 
-- **Ciornă (`draft`) → trimisă (`submitted`) → aprobată (`approved`) → publicată (`published`).**
-- O versiune trimisă poate fi **respinsă (`rejected`)**, cu o explicație, și readusă în ciornă pentru corectare.
-- Modificarea conținutului publicat se face printr-o versiune nouă, care parcurge procesul editorial.
+- audit repository;
+- evaluarea codului vechi;
+- decizia de reconstruire.
 
-Profesorii contribuie cu materiale; moderatorii și administratorii au permisiuni pentru verificare și publicare. Dreptul de editare este controlat și în funcție de autorul resursei.
+#### 02 — Arhitectură
 
-Validarea prin participarea unei comunități de profesori, vot și reputație rămâne o direcție de dezvoltare. Fluxul actual folosește roluri și aprobare editorială.
+- OpenEdu Central;
+- OpenEdu Local;
+- separarea responsabilităților;
+- stack tehnologic;
+- structură repository.
 
-## Milestone și direcții de dezvoltare
+#### 03 — Model de date
 
-### Etape parcurse
+- entități principale;
+- relații;
+- schema relațională.
 
-| Capitol | Rezultat |
-| --- | --- |
-| 00 — Viziune și cerințe | Clarificarea scopului și a limitelor primei versiuni |
-| 01 — Auditul repository-ului din 2020 | Evaluarea prototipului și decizia de reconstruire |
-| 02–04 — Arhitectură, model de date, roluri | Fundamentarea separării central–local și implementarea bazei necesare aplicației centrale |
-| 05.1–05.6 — Backend API | Fundație, contract API, catalog, workflow editorial, autentificare, autorizare și căutare |
-| 06.1–06.8 — Frontend | Interfață, catalog, resurse, căutare, autentificare, zona profesorului, moderare și teste |
+#### 04 — Autentificare, roluri și permisiuni
 
-Implementările backend și frontend sunt urmărite în [PR-urile integrate](https://github.com/neckroRO/OpenEdu-Romania/pulls?q=is%3Apr+is%3Amerged). Numerotarea capitolelor urmărește planul de lucru; nu indică finalizarea tuturor funcțiilor din viziunea pe termen lung.
+- utilizatori;
+- autentificare;
+- roluri;
+- autorizare.
 
-### Ce urmează
+#### 05 — Backend API
 
-- **Curriculum și lecții:** maparea programei, extinderea conținutului și validarea cu profesori.
-- **Instanțe locale:** administrarea instituțiilor, elevilor și claselor, integrarea cu OpenEdu Central.
-- **Activități educaționale:** exerciții interactive, quiz-uri și colaborare în grup.
-- **Deployment:** instalare reproductibilă, configurare pentru producție, backup și monitorizare.
-- **Securitate și GDPR:** verificări dedicate pentru folosirea cu date reale și în instituții.
-- **Testare extinsă:** scenarii complete de utilizare și pilot cu feedback de la profesori și elevi.
-- **AI:** etapă ulterioară, amânată pentru prima versiune; un eventual modul va fi opțional și va necesita evaluare separată.
+- API versionat;
+- catalog;
+- resurse;
+- workflow editorial;
+- căutare;
+- autorizare.
 
-Aplicația mobilă dedicată, grupurile de lucru, votul/reputația profesorilor și modulele AI nu sunt implementate în milestone-ul actual.
+#### 06 — Frontend Central
 
-## Tehnologii și structura repository-ului
+- catalog;
+- pagini de resurse;
+- căutare;
+- autentificare;
+- zona profesorului;
+- moderare;
+- route guards;
+- testare.
+
+---
+
+### 07 — Curriculum, lecții și comunitatea profesorilor
+
+#### Implementat până acum
+
+- model curricular;
+- import curricular;
+- model de lecții;
+- asocierea conceptelor;
+- resursele versiunilor de lecție;
+- consumul public;
+- validarea pedagogică;
+- reputația contributorilor;
+- administrarea utilizatorilor centrali;
+- conturi demonstrative pentru dezvoltare.
+
+#### 07.7 — Curriculum colaborativ și deduplicare
+
+Direcția următoare:
+
+- propuneri pentru clase / niveluri;
+- propuneri pentru materii;
+- propuneri pentru domenii;
+- propuneri pentru concepte;
+- modificări propuse;
+- workflow de revizuire;
+- solicitare de corecturi;
+- propuneri de merge;
+- aliasuri;
+- normalizarea denumirilor;
+- detectarea duplicatelor;
+- preview al efectelor unui merge;
+- audit complet;
+- păstrarea istoricului;
+- contexte și variante educaționale;
+- terminologie locală prin aliasuri;
+- posibilitatea de a continua lucrul pe propuneri aflate încă în moderare.
+
+---
+
+### 08 — Editor avansat de lecții
+
+Editorul de lecții trebuie să devină una dintre componentele centrale ale OpenEdu.
+
+Nu este gândit ca un simplu câmp de text.
+
+Direcția este un **editor modular pe blocuri**, construit special pentru conținut educațional.
+
+Blocurile planificate includ:
+
+#### Conținut
+
+- text formatat;
+- titluri;
+- subtitluri;
+- liste;
+- tabele;
+- citate;
+- casete informative;
+- „De reținut”;
+- exemple;
+- observații.
+
+#### Multimedia
+
+- imagini;
+- galerii;
+- audio;
+- video;
+- player YouTube;
+- resurse externe.
+
+#### Matematică și științe
+
+- formule;
+- ecuații;
+- grafice;
+- funcții;
+- tabele de valori;
+- elemente geometrice;
+- diagrame;
+- reprezentări interactive.
+
+#### Activități
+
+- exerciții;
+- exemple rezolvate;
+- indicii;
+- soluții;
+- alegere multiplă;
+- adevărat / fals;
+- răspuns liber;
+- asociere;
+- ordonare;
+- quiz-uri.
+
+#### Experiența editorului
+
+- drag & drop;
+- mutarea blocurilor;
+- duplicarea blocurilor;
+- preview;
+- mod elev;
+- previzualizare desktop / tabletă / telefon;
+- salvare draft;
+- versionare;
+- template-uri de lecție.
+
+Profesorul nu trebuie să cunoască HTML, CSS sau programare.
+
+Platforma trebuie să permită unui profesor să creeze o lecție atractivă concentrându-se exclusiv pe conținut și pedagogie.
+
+---
+
+### 09 — Explicații alternative și experiența elevului
+
+Aceeași temă trebuie să poată avea mai multe lecții independente.
+
+Profesorii nu editează implicit lecțiile altor profesori.
+
+Ei pot crea propriile explicații pentru același concept.
+
+Planificat:
+
+- mai multe lecții pentru același concept;
+- autori distincți;
+- versiuni distincte pentru fiecare lecție;
+- descrierea abordării;
+- estimarea timpului;
+- nivel de dificultate;
+- resurse necesare;
+- „Încearcă altă explicație”;
+- navigare între abordări;
+- feedback privind utilitatea unei explicații;
+- recomandarea unei abordări diferite atunci când elevul dorește o alternativă;
+- recapitulare;
+- aprofundare.
+
+Scopul nu este alegerea unei singure lecții câștigătoare.
+
+Scopul este ca elevul să poată găsi **o explicație care funcționează pentru el**.
+
+---
+
+### 10 — Activități interactive și evaluare
+
+Planificat:
+
+- quiz-uri integrate în lecții;
+- exerciții interactive;
+- feedback imediat;
+- încercări multiple;
+- explicații după răspuns;
+- seturi de exerciții;
+- evaluări formative;
+- progres;
+- recapitulări;
+- activități de grup.
+
+Conținutul activităților poate fi distribuit central.
+
+Răspunsurile și progresul elevilor vor aparține instanțelor locale.
+
+---
+
+### 11 — OpenEdu Local
+
+Planificat:
+
+- instituții;
+- clase;
+- elevi;
+- tutori;
+- profesori locali;
+- înscrieri;
+- administrarea claselor;
+- progres;
+- activități;
+- rezultate;
+- setări ale instituției;
+- permisiuni locale.
+
+OpenEdu Local trebuie proiectat astfel încât școala să își gestioneze propriile date fără a transforma OpenEdu Central într-o bază națională de date cu informațiile personale ale tuturor elevilor.
+
+---
+
+### 12 — Sincronizare Central–Local
+
+Planificat:
+
+- distribuirea curriculumului;
+- distribuirea lecțiilor;
+- actualizarea resurselor;
+- versiuni;
+- sincronizare incrementală;
+- rezolvarea conflictelor;
+- funcționare controlată în condiții de conectivitate limitată;
+- verificarea integrității datelor.
+
+---
+
+### 13 — Securitate și protecția datelor
+
+Înaintea utilizării reale cu date ale copiilor vor fi necesare:
+
+- threat modeling;
+- control riguros al accesului;
+- audit;
+- protecția sesiunilor;
+- rate limiting;
+- politici de parole;
+- HTTPS;
+- backup;
+- restaurare;
+- retenție;
+- ștergere;
+- jurnalizare;
+- separarea datelor între instituții;
+- revizuire GDPR;
+- testare de securitate.
+
+---
+
+### 14 — Deployment și operare
+
+Planificat:
+
+- instalare reproductibilă;
+- configurare pentru producție;
+- containere;
+- managementul configurației;
+- migrații controlate;
+- backup automat;
+- monitorizare;
+- loguri;
+- health checks;
+- proceduri de upgrade;
+- documentație pentru administratori.
+
+---
+
+### 15 — Accesibilitate și experiență multi-device
+
+Planificat:
+
+- WCAG;
+- navigare completă din tastatură;
+- suport pentru cititoare de ecran;
+- contrast;
+- fonturi și dimensiuni accesibile;
+- responsive design;
+- telefon;
+- tabletă;
+- desktop;
+- optimizare pentru conexiuni lente.
+
+---
+
+### 16 — Pilot și extindere
+
+Înaintea unei lansări largi:
+
+- pilot cu profesori;
+- pilot cu elevi;
+- feedback de la părinți;
+- analizarea experienței reale;
+- corectarea problemelor;
+- documentație pentru școli;
+- onboarding;
+- măsurarea impactului;
+- extindere graduală.
+
+---
+
+## Editorul de lecții
+
+Editorul reprezintă una dintre direcțiile cu cea mai mare prioritate pentru experiența finală a OpenEdu.
+
+Exemplu conceptual:
+
+```text
+┌───────────────────────────────────────────────────────┐
+│ Lecția: Teorema lui Pitagora           Preview       │
+├─────────────┬─────────────────────────┬───────────────┤
+│ ELEMENTE    │                         │ PROPRIETĂȚI   │
+│             │        LECȚIA           │               │
+│ Text        │                         │ Dimensiune    │
+│ Imagine     │ [ Introducere ]         │ Aliniere      │
+│ Video       │                         │ Dificultate   │
+│ Formulă     │ [ Video ]               │ ...           │
+│ Grafic      │                         │               │
+│ Geometrie   │ [ Explicație ]          │               │
+│ Quiz        │                         │               │
+│ Exercițiu   │ [ Quiz ]                │               │
+└─────────────┴─────────────────────────┴───────────────┘
+```
+
+Lecțiile nu vor fi stocate ca pagini HTML arbitrare.
+
+Direcția tehnică urmărită este reprezentarea structurată a blocurilor, astfel încât același conținut să poată fi randat în mai multe contexte și să poată evolua independent de designul interfeței.
+
+Exemplu conceptual:
+
+```json
+{
+  "blocks": [
+    {
+      "type": "paragraph",
+      "data": {}
+    },
+    {
+      "type": "youtube",
+      "data": {}
+    },
+    {
+      "type": "geometry",
+      "data": {}
+    },
+    {
+      "type": "quiz",
+      "data": {}
+    }
+  ]
+}
+```
+
+Conținutul introdus de utilizatori nu trebuie să permită executarea arbitrară de HTML sau JavaScript.
+
+---
+
+## Tehnologii
 
 | Zonă | Tehnologii |
 | --- | --- |
 | Backend central | PHP, Laravel 13, Laravel Sanctum, Eloquent |
-| Bază de date pentru dezvoltare | PostgreSQL 18 în Docker |
+| Bază de date dezvoltare | PostgreSQL 18 |
 | Frontend central | Vue 3, TypeScript, Vite, Vue Router, Pinia |
-| Teste backend | PHPUnit; configurația actuală folosește SQLite în memorie |
-| Teste frontend | Vitest, Vue Test Utils, jsdom |
+| Testare backend | PHPUnit |
+| Testare frontend | Vitest, Vue Test Utils, jsdom |
+| Mediu DB teste backend | SQLite în memorie |
+| Infrastructură dezvoltare | Docker Compose |
+
+Arhitectura și tehnologiile pot evolua atunci când există un motiv tehnic clar pentru schimbare.
+
+---
+
+## Structura repository-ului
 
 | Director / fișier | Rol |
 | --- | --- |
 | `apps/central/backend/` | API, modele, migrări, seedere și teste backend |
-| `apps/central/frontend/` | Interfața aplicației centrale și teste frontend |
-| `infra/compose.dev.yml` | Serviciul PostgreSQL pentru dezvoltare |
-| `infra/.env.example` | Exemplu de configurare a bazei de date |
- 
-Aplicația actuală se dezvoltă în `apps/central/`. Prototipul original OpenEdu din 2020 rămâne disponibil în istoricul Git al repository-ului.
+| `apps/central/frontend/` | Interfața OpenEdu Central și testele frontend |
+| `infra/compose.dev.yml` | PostgreSQL pentru dezvoltare |
+| `infra/.env.example` | Configurație exemplu pentru infrastructura locală |
+
+Prototipul OpenEdu din 2020 rămâne disponibil în istoricul Git al repository-ului.
+
+---
 
 ## Pornire pentru dezvoltare
 
-Instrucțiunile de mai jos sunt pentru un mediu local nou. Sunt necesare Git, Docker cu Compose, PHP și Composer, Node.js și npm. Folosește versiuni compatibile cu fișierele de dependențe; mediul de lucru al proiectului a utilizat PHP 8.5 și Node.js 24. PHP are nevoie de extensiile cerute de Composer, inclusiv driverul PostgreSQL; testele backend necesită și SQLite.
+Sunt necesare:
 
-### 1. Repository și baza de date
+- Git;
+- Docker + Compose;
+- PHP;
+- Composer;
+- Node.js;
+- npm.
+
+Mediul actual de dezvoltare a utilizat PHP 8.5 și Node.js 24.
+
+### 1. Clonează repository-ul
 
 ```bash
 git clone https://github.com/neckroRO/OpenEdu-Romania.git
@@ -155,10 +873,19 @@ cd OpenEdu-Romania
 cp infra/.env.example infra/.env
 ```
 
-În `infra/.env`, setează o parolă proprie pentru `POSTGRES_PASSWORD`, apoi pornește baza de date:
+Configurează `POSTGRES_PASSWORD` în:
+
+```text
+infra/.env
+```
+
+Apoi:
 
 ```bash
-docker compose --env-file infra/.env -f infra/compose.dev.yml up -d
+docker compose \
+  --env-file infra/.env \
+  -f infra/compose.dev.yml \
+  up -d
 ```
 
 ### 2. Backend
@@ -170,11 +897,12 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-În fișierul backend `.env`, configurează conexiunea PostgreSQL cu aceleași valori din `infra/.env`:
+Exemplu de configurare:
 
 ```dotenv
 APP_NAME=OpenEdu-Romania
 APP_URL=http://localhost:8000
+
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
@@ -189,12 +917,13 @@ Apoi:
 php artisan migrate
 php artisan db:seed --class=OpenEduMvpSeeder
 php artisan db:seed --class=OpenEduDevelopmentUsersSeeder
+
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-Seederul `OpenEduMvpSeeder` creează exemplul educațional demonstrativ.
+`OpenEduMvpSeeder` creează date educaționale demonstrative.
 
-Pentru dezvoltare locală, `OpenEduDevelopmentUsersSeeder` creează următoarele conturi demonstrative:
+`OpenEduDevelopmentUsersSeeder` creează conturi destinate exclusiv dezvoltării locale.
 
 | Rol | E-mail | Parolă inițială |
 | --- | --- | --- |
@@ -204,13 +933,15 @@ Pentru dezvoltare locală, `OpenEduDevelopmentUsersSeeder` creează următoarele
 | Elev | `elev@exemplu.ro` | `elev` |
 | Tutore | `tutore@exemplu.ro` | `tutore` |
 
-> **Important:** aceste conturi și parole sunt destinate exclusiv mediului local de dezvoltare. După instalare se recomandă schimbarea parolelor inițiale. Nu utiliza aceste credențiale într-un mediu public sau de producție. Seederul refuză rularea când aplicația este configurată cu `APP_ENV=production`.
+> **Important:** aceste credențiale sunt exclusiv pentru dezvoltare. Nu trebuie utilizate într-un mediu public sau de producție. Parolele inițiale trebuie schimbate atunci când este necesar.
 
-La rerularea seederului, conturile existente sunt păstrate, iar parolele deja schimbate nu sunt înlocuite cu parolele demonstrative.
+Seederul refuză rularea în mediul `production`.
+
+Rerularea lui nu înlocuiește parolele deja schimbate.
 
 ### 3. Frontend
 
-Într-un terminal separat, din rădăcina repository-ului:
+Într-un terminal separat:
 
 ```bash
 cd apps/central/frontend
@@ -218,111 +949,251 @@ npm ci
 npm run dev -- --host 127.0.0.1
 ```
 
-Interfața este disponibilă, în configurația implicită, la `http://localhost:5173`, iar API-ul la `http://localhost:8000/api/v1`. Vite redirecționează cererile `/api` către backendul local.
+Implicit:
 
-Aceste comenzi pornesc servere de dezvoltare. Publicarea în producție va avea o configurație dedicată.
+```text
+Frontend: http://localhost:5173
+API:      http://localhost:8000/api/v1
+```
 
-### 4. Verificări
+Vite redirecționează cererile `/api` către backendul local.
 
-Backend, din `apps/central/backend/`:
+### 4. Teste backend
 
 ```bash
+cd apps/central/backend
 php artisan test
 ```
 
-Frontend, din `apps/central/frontend/`:
+### 5. Teste și build frontend
 
 ```bash
+cd apps/central/frontend
 npm run test:run
 npm run build
 ```
 
-Testele automate acoperă părți esențiale ale aplicației, dar folosirea PostgreSQL în dezvoltare și SQLite în testele backend impune și verificări pe baza de date țintă.
-
-## Contribuții
-
-Proiectul are nevoie de dezvoltatori, profesori, elevi, părinți și parteneri care pot contribui cu experiență, feedback sau resurse.
-
-Contribuțiile pot include:
-
-- dezvoltare și remedierea problemelor;
-- maparea programei și realizarea de materiale educaționale;
-- verificare pedagogică și editorială;
-- testare, accesibilitate și feedback despre experiența de utilizare;
-- documentație și sprijin pentru implementarea în instituții.
-
-Pentru o propunere sau o problemă, deschide un [issue](https://github.com/neckroRO/OpenEdu-Romania/issues). Modificările de cod se propun prin pull request, cu o descriere a schimbării și a verificărilor efectuate.
-
-README-ul, documentația și descrierile publice ale contribuțiilor sunt în română. Identificatorii și denumirile tehnice din cod pot rămâne în engleză.
-
-## Q&A — întrebări și răspunsuri
-
-Această secțiune păstrează întrebările de la începutul proiectului, cu răspunsuri actualizate pentru direcția și stadiul din 2026.
-
-### Ce se dorește prin OpenEdu-Romania?
-
-O platformă educațională adaptată nevoilor învățământului din România, care poate fi utilizată de elevi și profesori și, în arhitectura țintă, instalată pentru fiecare școală. Resursele educaționale comune sunt gestionate central, iar datele și activitățile instituției sunt gestionate local. În prezent este funcțional nucleul web al aplicației centrale.
-
-### De ce un proiect propriu, când există deja platforme educaționale?
-
-Pentru a construi o soluție în jurul programei românești, a explicațiilor verificate și a autonomiei instituțiilor, cu dezvoltare transparentă și orientată spre beneficiul copiilor.
-
-Motivația inițială rămâne: proiectul nu trebuie folosit ca pretext pentru cheltuieli netransparente sau pentru interese care îndepărtează platforma de scopul educațional. Costurile reale de dezvoltare, infrastructură și întreținere trebuie explicate transparent. Publicarea codului și licențierea sunt lucruri distincte; statutul licenței este precizat mai jos.
-
-### Nu riscăm ca elevii să devină „roboți” și să piardă interacțiunea socială?
-
-Platforma trebuie să sprijine relația cu profesorul și colaborarea dintre elevi. Un copil bolnav poate recupera explicațiile de acasă, iar activitățile digitale pot susține lucrul în grup. Direcția pedagogică urmărește înțelegerea și implicarea activă. Instrumentele de colaborare în grup sunt încă planificate.
-
-### Urmează să desființăm școlile sau să mutăm totul online? Este doar pentru situații de urgență?
-
-Nu. OpenEdu-Romania completează școala și poate fi util atât în situații de întrerupere a participării la clasă, cât și pentru recapitulare, aprofundare și pregătire. Profesorul și interacțiunea directă rămân parte esențială a învățării.
-
-### Există deja manuale.edu.ro. Ce aduce în plus?
-
-Viziunea proiectului leagă conceptele din programă de explicații alternative, exemple, resurse suplimentare și activități interactive. Catalogul și fluxul editorial sunt implementate; jocurile, quiz-urile și grupurile de lucru sunt etape viitoare.
-
-### De cine este nevoie pentru a dezvolta platforma?
-
-De dezvoltatori, profesori, elevi, părinți și entități partenere. Profesorii sunt esențiali pentru corectitudinea și utilitatea materialelor, iar elevii și părinții pentru feedback. Ideea inițială a pornit din comunitatea „Grupul IT-știlor” de pe Discord.
-
-### Se va prelucra doar materia considerată importantă sau esențială?
-
-Obiectivul este acoperirea programei, fără eliminarea arbitrară a unor conținuturi. Materialele suplimentare pot aprofunda sau explica diferit conceptele. Catalogul actual este demonstrativ și nu acoperă încă toate clasele și materiile.
-
-### Există un singur manual pentru fiecare materie?
-
-În discuția inițială, proiectul era descris în jurul unui manual comun. Direcția actuală ține cont de existența manualelor alternative avizate: programa este reperul de organizare, iar manualele pot oferi explicații și succesiuni diferite. Platforma urmărește conceptele și competențele, astfel încât să poată susține mai multe abordări ale aceluiași conținut.
-
-### De ce ne-am uitat la Estonia?
-
-Pentru a explora un reper european apropiat de contextul nostru și idei care pot ajuta la proiectarea experienței de învățare. Programa românească rămâne baza conținutului. Adaptarea pedagogică este o direcție de lucru care trebuie concretizată și evaluată cu profesori.
-
-### Cine verifică materialele înainte de publicare?
-
-În implementarea actuală, contribuțiile parcurg verificarea moderatorilor sau administratorilor. Aprobarea și publicarea sunt operații distincte. Un sistem comunitar de vot și reputație pentru profesori este planificat.
-
-### Va avea inteligență artificială?
-
-AI a fost amânat pentru prima versiune. Prioritatea este o bază de conținut verificat și fluxuri educaționale funcționale. Un eventual modul AI va fi opțional și nu va publica automat materiale fără validare.
-
-### Sunt deja implementate clasele, catalogul de note sau aplicația mobilă?
-
-Nu. Milestone-ul actual privește aplicația centrală de resurse. Modulele școlilor și o aplicație mobilă dedicată sunt dezvoltări ulterioare.
-
-### Proiectul are avizul Ministerului Educației?
-
-README-ul inițial menționa posibilitatea unui aviz ca obiectiv. Acest document nu revendică un aviz, o acreditare sau o adoptare oficială. Orice astfel de statut va fi anunțat numai în baza unei confirmări documentate.
-
-## Licențiere și drepturile asupra materialelor
-
-Intenția proiectului este dezvoltarea open-source. La data acestei actualizări, repository-ul nu conține un fișier `LICENSE` la rădăcină care să stabilească licența întregului proiect. Alegerea și publicarea acesteia rămân de clarificat; licențele componentelor și dependențelor trebuie respectate separat.
-
-Materialele educaționale au propriile drepturi de autor. Disponibilitatea online a unui manual sau a unui material nu acordă automat dreptul de a-l copia și redistribui. Contribuțiile trebuie să indice sursa și dreptul de utilizare; politica de licențiere a conținutului va fi definită separat de cea a codului.
+Testarea automată nu înlocuiește verificarea pe PostgreSQL și smoke testele în browser.
 
 ---
 
-**Stadiu documentat: 7 octombrie 2026 — nucleul central funcțional, după integrarea etapelor backend 05.1–05.6 și frontend 06.1–06.8.**
+## Contribuții
 
-Grupul IT-stilor
-#openedu-romania
+OpenEdu are nevoie de mai mult decât programatori.
+
+Sunt binevenite contribuțiile:
+
+- profesorilor;
+- elevilor;
+- părinților;
+- dezvoltatorilor;
+- specialiștilor în UX;
+- specialiștilor în accesibilitate;
+- specialiștilor în securitate;
+- instituțiilor interesate de pilotare.
+
+Contribuțiile pot include:
+
+- cod;
+- teste;
+- documentație;
+- curriculum;
+- lecții;
+- explicații alternative;
+- exerciții;
+- verificare pedagogică;
+- feedback;
+- testare cu utilizatori;
+- accesibilitate;
+- securitate.
+
+Pentru probleme sau propuneri tehnice:
+
+https://github.com/neckroRO/OpenEdu-Romania/issues
+
+Modificările de cod sunt propuse prin pull request.
+
+README-ul și documentația publică sunt redactate în limba română. Identificatorii tehnici din cod pot rămâne în engleză.
+
+---
+
+## Q&A
+
+### Ce este OpenEdu-Romania?
+
+O platformă educațională construită în jurul programei școlare și al ideii că aceeași noțiune poate fi explicată în mai multe moduri.
+
+Beneficiarii principali sunt elevii.
+
+### Care este problema pe care încearcă să o rezolve?
+
+Un elev poate să nu înțeleagă o explicație de la clasă fără ca profesorul sau elevul să fi făcut ceva greșit.
+
+OpenEdu încearcă să îi ofere acces la alte explicații ale aceleiași teme.
+
+### Va exista o singură lecție pentru fiecare temă?
+
+Nu.
+
+Tocmai diversitatea explicațiilor este una dintre ideile centrale ale proiectului.
+
+Mai mulți profesori vor putea crea lecții diferite pentru același concept.
+
+### Profesorii vor modifica lecțiile altor profesori?
+
+Nu în mod implicit.
+
+O lecție reprezintă o abordare distinctă și are propriul autor și propriile versiuni.
+
+Un alt profesor poate crea o explicație alternativă pentru același concept.
+
+### Ce se întâmplă când o lecție este actualizată?
+
+Conținutul publicat nu trebuie suprascris fără istoric.
+
+Modificările sunt gestionate prin versiuni editoriale.
+
+### Cine verifică materialele?
+
+Profesorii contribuie cu materiale.
+
+Moderatorii și administratorii gestionează procesul de validare și publicare.
+
+Modelul de validare pedagogică și reputație este în curs de dezvoltare continuă.
+
+### Poate un profesor propune un concept care nu există?
+
+Aceasta este o funcționalitate planificată pentru etapa de curriculum colaborativ.
+
+Profesorii vor putea propune elemente noi sau unificarea unor elemente duplicate.
+
+### Cum vor fi evitate denumirile duplicate?
+
+Prin:
+
+- normalizare;
+- căutare;
+- aliasuri;
+- sugestii;
+- propuneri de merge;
+- moderare;
+- audit.
+
+### Cum sunt tratate alternativele sau variantele educaționale?
+
+Modelul este proiectat să fie generic.
+
+Aplicația nu trebuie să conțină o listă rigidă de denumiri în cod.
+
+Contextele educaționale pot fi definite ca date, iar terminologia locală poate fi păstrată prin aliasuri sau etichete.
+
+Conținutul comun nu trebuie duplicat inutil.
+
+### OpenEdu înlocuiește școala?
+
+Nu.
+
+Platforma completează activitatea profesorului și oferă elevului resurse suplimentare atunci când are nevoie de o altă explicație, recapitulare sau aprofundare.
+
+### Este doar pentru situații de urgență sau pentru elevii absenți?
+
+Nu.
+
+Poate fi folosit pentru:
+
+- recuperarea unei lecții;
+- înțelegerea unei explicații dificile;
+- recapitulare;
+- exercițiu;
+- aprofundare;
+- pregătire individuală.
+
+### De ce nu este suficient un manual digital?
+
+Un manual oferă o anumită structură și o anumită explicație.
+
+OpenEdu urmărește să lege conceptele curriculare de mai multe explicații și resurse, create de profesori diferiți.
+
+### Este programa școlară baza platformei?
+
+Da.
+
+Programa este reperul principal de organizare.
+
+Manualele reprezintă surse și resurse, nu structura unică a platformei.
+
+### Este curriculumul actual complet?
+
+Nu.
+
+Datele existente sunt încă demonstrative și vor fi extinse gradual.
+
+### Există deja OpenEdu Local?
+
+Nu.
+
+Arhitectura Central–Local este definită ca direcție, dar modulele complete pentru instituții, elevi și clase locale urmează să fie construite.
+
+### De ce separăm Central de Local?
+
+Pentru ca resursele educaționale să poată fi comune fără ca toate datele elevilor să fie centralizate în aceeași aplicație.
+
+### Există deja aplicație mobilă?
+
+Nu.
+
+Interfața web responsive este prioritară. Nevoia unei aplicații dedicate va fi evaluată ulterior.
+
+### Proiectul are avizul Ministerului Educației?
+
+Nu revendicăm un astfel de statut.
+
+Orice aviz, acreditare, parteneriat sau adoptare oficială va fi comunicată numai dacă există o confirmare documentată.
+
+### Cine poate contribui?
+
+Oricine poate contribui tehnic prin mecanismele repository-ului.
+
+Pentru conținutul educațional, rolul profesorilor și validarea pedagogică sunt esențiale.
+
+---
+
+## Licențiere și drepturile asupra materialelor
+
+Intenția proiectului este dezvoltarea deschisă.
+
+La data acestei actualizări, repository-ul nu conține încă un fișier `LICENSE` la rădăcină care să stabilească licența întregului proiect.
+
+Alegerea și publicarea licenței trebuie clarificate separat.
+
+Materialele educaționale au propriile drepturi de autor.
+
+Faptul că un manual, un video, o imagine sau un document este disponibil online nu înseamnă automat că poate fi copiat și redistribuit.
+
+Politica privind:
+
+- licența codului;
+- licența conținutului;
+- atribuirea autorilor;
+- sursele;
+- materialele externe;
+
+va fi definită explicit înaintea unei utilizări publice la scară largă.
+
+---
+
+## Originea proiectului
+
+OpenEdu-Romania a pornit în 2020, în perioada pandemiei, din comunitatea **Grupul IT-știlor**.
+
+Repository:
+
+https://github.com/neckroRO/OpenEdu-Romania
+
+Comunitate:
+
 https://discord.gg/2zZwSU9
+
+---
+
+**Stadiu documentat: 7 octombrie 2026 — nucleul OpenEdu Central funcțional, dezvoltarea curriculară și editorială ajunsă până la etapa 07.6.2.5; următoarea direcție majoră este curriculumul colaborativ, urmat de editorul avansat de lecții.**
