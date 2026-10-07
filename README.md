@@ -188,10 +188,25 @@ Apoi:
 ```bash
 php artisan migrate
 php artisan db:seed --class=OpenEduMvpSeeder
+php artisan db:seed --class=OpenEduDevelopmentUsersSeeder
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-Seederul `OpenEduMvpSeeder` creează exemplul educațional demonstrativ. Nu creează conturi pentru login; utilizatorii și rolurile pentru testarea editorială se configurează separat în mediul de dezvoltare.
+Seederul `OpenEduMvpSeeder` creează exemplul educațional demonstrativ.
+
+Pentru dezvoltare locală, `OpenEduDevelopmentUsersSeeder` creează următoarele conturi demonstrative:
+
+| Rol | E-mail | Parolă inițială |
+| --- | --- | --- |
+| Administrator | `admin@exemplu.ro` | `admin` |
+| Moderator | `moderator@exemplu.ro` | `moderator` |
+| Profesor | `profesor@exemplu.ro` | `profesor` |
+| Elev | `elev@exemplu.ro` | `elev` |
+| Tutore | `tutore@exemplu.ro` | `tutore` |
+
+> **Important:** aceste conturi și parole sunt destinate exclusiv mediului local de dezvoltare. După instalare se recomandă schimbarea parolelor inițiale. Nu utiliza aceste credențiale într-un mediu public sau de producție. Seederul refuză rularea când aplicația este configurată cu `APP_ENV=production`.
+
+La rerularea seederului, conturile existente sunt păstrate, iar parolele deja schimbate nu sunt înlocuite cu parolele demonstrative.
 
 ### 3. Frontend
 
