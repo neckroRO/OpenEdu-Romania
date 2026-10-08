@@ -11,6 +11,7 @@ import {
 } from 'vue-router'
 
 import {
+  approveCurriculumProposal,
   confirmCurriculumMerge,
   getCurriculumMergePreview,
   getCurriculumProposals,
@@ -178,7 +179,7 @@ function typeLabel(
     CurriculumProposalType,
     string
   > = {
-    create: 'Materie nouă',
+    create: 'Creare',
     update: 'Actualizare',
     alias: 'Alias',
     merge_candidate: 'Posibil duplicat',
@@ -187,9 +188,33 @@ function typeLabel(
   return labels[type]
 }
 
+function entityLabel(
+  entityType: CurriculumProposal['entity_type'],
+): string {
+  const labels: Record<
+    CurriculumProposal['entity_type'],
+    string
+  > = {
+    subject: 'Materie',
+    domain: 'Domeniu',
+    concept: 'Concept',
+  }
+
+  return labels[entityType]
+}
+
 function proposalTitle(
   proposal: CurriculumProposal,
 ): string {
+  const title = proposal.payload.title
+
+  if (
+    typeof title === 'string' &&
+    title.trim()
+  ) {
+    return title
+  }
+
   const name = proposal.payload.name
 
   if (
@@ -199,8 +224,19 @@ function proposalTitle(
     return name
   }
 
+  const alias = proposal.payload.alias
+
+  if (
+    typeof alias === 'string' &&
+    alias.trim()
+  ) {
+    return alias
+  }
+
   if (proposal.entity_id !== null) {
-    return `Materia #${proposal.entity_id}`
+    return `${entityLabel(
+      proposal.entity_type,
+    )} #${proposal.entity_id}`
   }
 
   return `Propunerea #${proposal.id}`
@@ -412,6 +448,64 @@ function selectProposal(
 
   if (mergeProposalId.value !== null) {
     void closeMergePreview()
+  }
+}
+
+async function approveSelected():
+Promise<void> {
+  if (
+    !selected.value ||
+    selected.value.status !== 'pending' ||
+    selected.value.proposal_type ===
+      'merge_candidate'
+  ) {
+    return
+  }
+
+  const note =
+    rejectNote.value.trim()
+
+  if (note.length > 2000) {
+    error.value =
+      'Nota nu poate depăși 2000 de caractere.'
+
+    return
+  }
+
+  actionLoading.value = true
+  error.value = null
+  notice.value = null
+
+  try {
+    await approveCurriculumProposal(
+      selected.value.id,
+      {
+        note: note || null,
+      },
+    )
+
+    rejectNote.value = ''
+
+    notice.value =
+      'Propunerea a fost aprobată și aplicată.'
+
+    await loadProposals()
+  } catch (caught) {
+    if (
+      await handleExpiredSession(
+        caught,
+      )
+    ) {
+      return
+    }
+
+    error.value =
+      requestErrorMessage(
+        caught,
+        'Propunerea nu a putut fi aprobată.',
+      )
+  } finally {
+    actionLoading.value = false
   }
 }
 
@@ -676,7 +770,7 @@ onMounted(() => {
           </option>
 
           <option value="create">
-            Materie nouă
+            Creare
           </option>
 
           <option value="update">
@@ -1405,6 +1499,23 @@ onMounted(() => {
 
             <div class="review-actions">
               <button
+                v-if="
+                  selected.proposal_type !==
+                  'merge_candidate'
+                "
+                type="button"
+                class="approve-button"
+                :disabled="actionLoading"
+                @click="approveSelected"
+              >
+                {{
+                  actionLoading
+                    ? 'Se procesează...'
+                    : 'Aprobă propunerea'
+                }}
+              </button>
+
+              <button
                 type="button"
                 class="reject-button"
                 :disabled="actionLoading"
@@ -1839,6 +1950,7 @@ onMounted(() => {
   margin-top: 14px;
 }
 
+.approve-button,
 .reject-button,
 .preview-button {
   min-height: 38px;
@@ -1846,6 +1958,12 @@ onMounted(() => {
   border-radius: 8px;
   font-weight: 800;
   cursor: pointer;
+}
+
+.approve-button {
+  border: 0;
+  background: var(--primary);
+  color: #fff;
 }
 
 .reject-button {

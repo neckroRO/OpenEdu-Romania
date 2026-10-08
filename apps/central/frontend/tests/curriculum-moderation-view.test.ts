@@ -29,6 +29,7 @@ import type {
 
 vi.mock('../src/api/curriculum', () => ({
   getCurriculumProposals: vi.fn(),
+  approveCurriculumProposal: vi.fn(),
   rejectCurriculumProposal: vi.fn(),
   getCurriculumMergePreview: vi.fn(),
   confirmCurriculumMerge: vi.fn(),
@@ -37,6 +38,11 @@ vi.mock('../src/api/curriculum', () => ({
 const mockedGetCurriculumProposals =
   vi.mocked(
     curriculumApi.getCurriculumProposals,
+  )
+
+const mockedApproveCurriculumProposal =
+  vi.mocked(
+    curriculumApi.approveCurriculumProposal,
   )
 
 const mockedRejectCurriculumProposal =
@@ -179,6 +185,15 @@ describe('CurriculumModerationView', () => {
 
     mockedGetCurriculumProposals
       .mockResolvedValue([])
+
+    mockedApproveCurriculumProposal
+      .mockResolvedValue(
+        proposal(
+          1,
+          'create',
+          'approved',
+        ),
+      )
 
     mockedRejectCurriculumProposal
       .mockResolvedValue(
@@ -325,6 +340,63 @@ describe('CurriculumModerationView', () => {
     )
   })
 
+  it('aprobă și aplică o propunere normală', async () => {
+    mockedGetCurriculumProposals
+      .mockResolvedValueOnce([
+        proposal(
+          7,
+          'update',
+          'pending',
+        ),
+      ])
+      .mockResolvedValueOnce([
+        proposal(
+          7,
+          'update',
+          'approved',
+        ),
+      ])
+
+    const {
+      wrapper,
+    } = await mountModeration()
+
+    await wrapper
+      .get(
+        'textarea[placeholder="Motivul respingerii sau observații..."]',
+      )
+      .setValue(
+        '  Validat curricular.  ',
+      )
+
+    await wrapper
+      .get('.approve-button')
+      .trigger('click')
+
+    await flushPromises()
+
+    expect(
+      mockedApproveCurriculumProposal,
+    ).toHaveBeenCalledWith(
+      7,
+      {
+        note: 'Validat curricular.',
+      },
+    )
+
+    expect(
+      mockedGetCurriculumProposals,
+    ).toHaveBeenCalledTimes(2)
+
+    expect(
+      wrapper
+        .get('.moderation-notice')
+        .text(),
+    ).toBe(
+      'Propunerea a fost aprobată și aplicată.',
+    )
+  })
+
   it('respinge propunerea selectată', async () => {
     mockedGetCurriculumProposals
       .mockResolvedValueOnce([
@@ -377,6 +449,33 @@ describe('CurriculumModerationView', () => {
     ).toBe(
       'Propunerea a fost respinsă.',
     )
+  })
+
+  it('nu oferă approve direct pentru merge candidate', async () => {
+    mockedGetCurriculumProposals
+      .mockResolvedValue([
+        proposal(
+          9,
+          'merge_candidate',
+          'pending',
+        ),
+      ])
+
+    const {
+      wrapper,
+    } = await mountModeration()
+
+    expect(
+      wrapper.find(
+        '.approve-button',
+      ).exists(),
+    ).toBe(false)
+
+    expect(
+      wrapper.find(
+        '.preview-button',
+      ).exists(),
+    ).toBe(true)
   })
 
   it('afișează butonul de preview doar pentru merge candidate', async () => {
@@ -481,6 +580,94 @@ describe('CurriculumModerationView', () => {
         .get('.merge-ready')
         .text(),
     ).toContain('Merge valid')
+  })
+
+  it('afișează impactul unui merge de concepte', async () => {
+    mockedGetCurriculumProposals
+      .mockResolvedValue([
+        {
+          ...proposal(
+            14,
+            'merge_candidate',
+            'pending',
+          ),
+          entity_type: 'concept',
+          entity_id: 114,
+          payload: {
+            duplicate_entity_id: 214,
+          },
+        },
+      ])
+
+    mockedGetCurriculumMergePreview
+      .mockResolvedValue({
+        source_concept_id: 114,
+        target_concept_id: 214,
+        placements_to_move: 2,
+        placements_to_deduplicate: 1,
+        competencies_to_move: 3,
+        competencies_to_deduplicate: 1,
+        lessons_to_move: 4,
+        lessons_to_deduplicate: 2,
+        resources_to_move: 5,
+        resources_to_deduplicate: 1,
+        aliases_to_move: 2,
+        aliases_to_deduplicate: 1,
+        source_title_alias_will_be_created: true,
+        blocked: false,
+        blocking_reasons: [],
+      })
+
+    const {
+      wrapper,
+    } = await mountModeration()
+
+    await wrapper
+      .get('.preview-button')
+      .trigger('click')
+
+    await flushPromises()
+
+    expect(
+      wrapper
+        .get('.merge-direction')
+        .text(),
+    ).toContain(
+      'Concept #114',
+    )
+
+    expect(
+      wrapper
+        .get('.merge-direction')
+        .text(),
+    ).toContain(
+      'Concept #214',
+    )
+
+    const impact =
+      wrapper
+        .get('.merge-impact-grid')
+        .text()
+
+    expect(impact).toContain(
+      'Plasări mutate',
+    )
+
+    expect(impact).toContain(
+      'Competențe mutate',
+    )
+
+    expect(impact).toContain(
+      'Lecții mutate',
+    )
+
+    expect(impact).toContain(
+      'Resurse mutate',
+    )
+
+    expect(impact).toContain(
+      'Alias titlu sursă',
+    )
   })
 
   it('blochează confirmarea dacă preview-ul este blocat', async () => {
