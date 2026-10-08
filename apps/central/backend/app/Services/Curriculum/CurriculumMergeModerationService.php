@@ -10,6 +10,7 @@ use App\Models\CurriculumProposal;
 use App\Models\Subject;
 use App\Models\User;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 
 class CurriculumMergeModerationService
 {
@@ -17,6 +18,7 @@ class CurriculumMergeModerationService
         private readonly SubjectMergePreviewService $previewService,
         private readonly SubjectMergeService $mergeService,
         private readonly CurriculumProposalWorkflow $proposalWorkflow,
+        private readonly CurriculumAuditService $auditService,
     ) {
     }
 
@@ -48,33 +50,55 @@ class CurriculumMergeModerationService
             );
         }
 
-        [$source, $target] = $this->resolveSubjects($proposal);
-
-        $preview = $this->previewService->preview(
-            $source,
-            $target
-        );
-
-        if ($preview->blocked) {
-            throw new DomainException(
-                'The proposed merge is blocked by preview validation.'
-            );
-        }
-
-        $merge = $this->mergeService->merge(
-            $source,
-            $target,
-            $moderator,
-            $note ?? $proposal->reason
-        );
-
-        $this->proposalWorkflow->markMerged(
-            $proposal->refresh(),
+        return DB::transaction(function () use (
+            $proposal,
             $moderator,
             $note
-        );
+        ): CurriculumEntityMerge {
+            [$source, $target] = $this->resolveSubjects(
+                $proposal
+            );
 
-        return $merge;
+            $preview = $this->previewService->preview(
+                $source,
+                $target
+            );
+
+            if ($preview->blocked) {
+                throw new DomainException(
+                    'The proposed merge is blocked by preview validation.'
+                );
+            }
+
+            $merge = $this->mergeService->merge(
+                $source,
+                $target,
+                $moderator,
+                $note ?? $proposal->reason
+            );
+
+            $this->proposalWorkflow->markMerged(
+                $proposal->refresh(),
+                $moderator,
+                $note
+            );
+
+            $this->auditService->record(
+                eventType: 'merge_completed',
+                actor: $moderator,
+                proposal: $proposal->refresh(),
+                entityType: 'subject',
+                entityId: $target->id,
+                metadata: [
+                    'merge_id' => $merge->id,
+                    'source_entity_id' => $source->id,
+                    'target_entity_id' => $target->id,
+                    'note' => $note,
+                ]
+            );
+
+            return $merge;
+        });
     }
 
     private function assertMergeCandidate(

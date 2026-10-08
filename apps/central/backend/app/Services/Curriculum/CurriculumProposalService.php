@@ -7,9 +7,15 @@ use App\Enums\CurriculumProposalType;
 use App\Models\CurriculumProposal;
 use App\Models\User;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 
 class CurriculumProposalService
 {
+    public function __construct(
+        private readonly CurriculumAuditService $auditService
+    ) {
+    }
+
     public function create(
         User $proposer,
         string $entityType,
@@ -29,15 +35,37 @@ class CurriculumProposalService
             );
         }
 
-        return CurriculumProposal::create([
-            'entity_type' => $entityType,
-            'entity_id' => $entityId,
-            'proposal_type' => $type,
-            'payload' => $payload,
-            'reason' => $reason,
-            'status' => CurriculumProposalStatus::Pending,
-            'proposed_by' => $proposer->id,
-        ]);
+        return DB::transaction(function () use (
+            $proposer,
+            $entityType,
+            $type,
+            $payload,
+            $entityId,
+            $reason
+        ): CurriculumProposal {
+            $proposal = CurriculumProposal::create([
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'proposal_type' => $type,
+                'payload' => $payload,
+                'reason' => $reason,
+                'status' => CurriculumProposalStatus::Pending,
+                'proposed_by' => $proposer->id,
+            ]);
+
+            $this->auditService->record(
+                eventType: 'proposal_created',
+                actor: $proposer,
+                proposal: $proposal,
+                metadata: [
+                    'proposal_type' => $type->value,
+                    'payload' => $payload,
+                    'reason' => $reason,
+                ]
+            );
+
+            return $proposal;
+        });
     }
 
     private function validateEntityReference(

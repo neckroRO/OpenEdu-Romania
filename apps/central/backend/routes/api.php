@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\V1\AdminUserController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ConceptResourceController;
 use App\Http\Controllers\Api\V1\CurriculumImportController;
+use App\Http\Controllers\Api\V1\CurriculumProposalController;
+use App\Http\Controllers\Api\V1\CurriculumProposalModerationController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectCompetencyController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectConceptController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectLessonController;
@@ -69,6 +71,42 @@ Route::middleware('auth:sanctum')
         Route::post(
             '/admin/curriculum/import',
             CurriculumImportController::class
+        );
+
+
+        Route::get(
+            '/curriculum/proposals',
+            [CurriculumProposalController::class, 'index']
+        );
+
+        Route::post(
+            '/curriculum/proposals',
+            [CurriculumProposalController::class, 'store']
+        );
+
+
+        Route::get(
+            '/curriculum/proposals/{proposal}/merge-preview',
+            [
+                CurriculumProposalModerationController::class,
+                'preview',
+            ]
+        );
+
+        Route::post(
+            '/curriculum/proposals/{proposal}/reject',
+            [
+                CurriculumProposalModerationController::class,
+                'reject',
+            ]
+        );
+
+        Route::post(
+            '/curriculum/proposals/{proposal}/confirm-merge',
+            [
+                CurriculumProposalModerationController::class,
+                'confirmMerge',
+            ]
         );
 
         Route::get(
