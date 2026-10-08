@@ -30,6 +30,8 @@ import type {
 vi.mock('../src/api/curriculum', () => ({
   getCurriculumProposals: vi.fn(),
   rejectCurriculumProposal: vi.fn(),
+  getCurriculumMergePreview: vi.fn(),
+  confirmCurriculumMerge: vi.fn(),
 }))
 
 const mockedGetCurriculumProposals =
@@ -41,6 +43,41 @@ const mockedRejectCurriculumProposal =
   vi.mocked(
     curriculumApi.rejectCurriculumProposal,
   )
+
+const mockedGetCurriculumMergePreview =
+  vi.mocked(
+    curriculumApi.getCurriculumMergePreview,
+  )
+
+const mockedConfirmCurriculumMerge =
+  vi.mocked(
+    curriculumApi.confirmCurriculumMerge,
+  )
+
+function mergePreview(
+  blocked = false,
+) {
+  return {
+    source_subject_id: 112,
+    target_subject_id: 212,
+    curriculum_subjects_to_move: 3,
+    curriculum_subject_collisions:
+      blocked ? 1 : 0,
+    aliases_to_move: 2,
+    aliases_to_deduplicate: 1,
+    source_name_alias_will_be_created: true,
+    reputations_to_move: 4,
+    reputations_to_consolidate: 2,
+    reputation_events_to_move: 7,
+    blocked,
+    blocking_reasons:
+      blocked
+        ? [
+            'Conflict curricular detectat.',
+          ]
+        : [],
+  }
+}
 
 function proposal(
   id: number,
@@ -151,6 +188,31 @@ describe('CurriculumModerationView', () => {
           'rejected',
         ),
       )
+
+    mockedGetCurriculumMergePreview
+      .mockResolvedValue(
+        mergePreview(),
+      )
+
+    mockedConfirmCurriculumMerge
+      .mockResolvedValue({
+        proposal: proposal(
+          12,
+          'merge_candidate',
+          'merged',
+        ),
+        merge: {
+          id: 1,
+          entity_type: 'subject',
+          source_entity_id: 112,
+          target_entity_id: 212,
+          merged_by: 2,
+          merged_at:
+            '2026-10-08T16:00:00Z',
+          reason: null,
+          metadata: {},
+        },
+      })
   })
 
   it('încarcă propunerile și afișează statisticile', async () => {
@@ -370,5 +432,171 @@ describe('CurriculumModerationView', () => {
     ).toEqual({
       merge: '12',
     })
+  })
+
+  it('încarcă și afișează impactul merge-ului', async () => {
+    mockedGetCurriculumProposals
+      .mockResolvedValue([
+        proposal(
+          12,
+          'merge_candidate',
+          'pending',
+        ),
+      ])
+
+    const {
+      wrapper,
+    } = await mountModeration()
+
+    await wrapper
+      .get('.preview-button')
+      .trigger('click')
+
+    await flushPromises()
+
+    expect(
+      mockedGetCurriculumMergePreview,
+    ).toHaveBeenCalledWith(12)
+
+    expect(
+      wrapper
+        .get('.merge-direction')
+        .text(),
+    ).toContain('Materia #112')
+
+    expect(
+      wrapper
+        .get('.merge-direction')
+        .text(),
+    ).toContain('Materia #212')
+
+    expect(
+      wrapper
+        .get('.merge-impact-grid')
+        .text(),
+    ).toContain('3')
+
+    expect(
+      wrapper
+        .get('.merge-ready')
+        .text(),
+    ).toContain('Merge valid')
+  })
+
+  it('blochează confirmarea dacă preview-ul este blocat', async () => {
+    mockedGetCurriculumProposals
+      .mockResolvedValue([
+        proposal(
+          12,
+          'merge_candidate',
+          'pending',
+        ),
+      ])
+
+    mockedGetCurriculumMergePreview
+      .mockResolvedValue(
+        mergePreview(true),
+      )
+
+    const {
+      wrapper,
+    } = await mountModeration()
+
+    await wrapper
+      .get('.preview-button')
+      .trigger('click')
+
+    await flushPromises()
+
+    expect(
+      wrapper
+        .get('.merge-blocked')
+        .text(),
+    ).toContain(
+      'Conflict curricular detectat.',
+    )
+
+    expect(
+      wrapper
+        .get('.confirm-merge-button')
+        .attributes('disabled'),
+    ).toBeDefined()
+
+    await wrapper
+      .get('.confirm-merge-button')
+      .trigger('click')
+
+    expect(
+      mockedConfirmCurriculumMerge,
+    ).not.toHaveBeenCalled()
+  })
+
+  it('confirmă merge-ul și reîncarcă propunerile', async () => {
+    mockedGetCurriculumProposals
+      .mockResolvedValueOnce([
+        proposal(
+          12,
+          'merge_candidate',
+          'pending',
+        ),
+      ])
+      .mockResolvedValueOnce([
+        proposal(
+          12,
+          'merge_candidate',
+          'merged',
+        ),
+      ])
+
+    const {
+      wrapper,
+      router,
+    } = await mountModeration()
+
+    await wrapper
+      .get('.preview-button')
+      .trigger('click')
+
+    await flushPromises()
+
+    await wrapper
+      .get(
+        'textarea[placeholder="Observații despre fuziunea curriculară..."]',
+      )
+      .setValue(
+        '  Duplicat confirmat pedagogic.  ',
+      )
+
+    await wrapper
+      .get('.confirm-merge-button')
+      .trigger('click')
+
+    await flushPromises()
+
+    expect(
+      mockedConfirmCurriculumMerge,
+    ).toHaveBeenCalledWith(
+      12,
+      {
+        note:
+          'Duplicat confirmat pedagogic.',
+      },
+    )
+
+    expect(
+      mockedGetCurriculumProposals,
+    ).toHaveBeenCalledTimes(2)
+
+    expect(
+      router.currentRoute.value.query,
+    ).toEqual({})
+
+    expect(
+      wrapper
+        .get('.moderation-notice')
+        .text(),
+    ).toBe(
+      'Merge-ul curricular a fost confirmat.',
+    )
   })
 })

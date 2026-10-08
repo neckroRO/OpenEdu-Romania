@@ -3,10 +3,16 @@ import {
   computed,
   onMounted,
   ref,
+  watch,
 } from 'vue'
-import { useRouter } from 'vue-router'
+import {
+  useRoute,
+  useRouter,
+} from 'vue-router'
 
 import {
+  confirmCurriculumMerge,
+  getCurriculumMergePreview,
   getCurriculumProposals,
   rejectCurriculumProposal,
 } from '../api/curriculum'
@@ -14,11 +20,13 @@ import { ApiError } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 
 import type {
+  CurriculumMergePreview,
   CurriculumProposal,
   CurriculumProposalStatus,
   CurriculumProposalType,
 } from '../types/curriculum'
 
+const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -35,12 +43,46 @@ const error = ref<string | null>(null)
 const notice = ref<string | null>(null)
 const rejectNote = ref('')
 
+const mergePreview =
+  ref<CurriculumMergePreview | null>(null)
+
+const mergeLoading = ref(false)
+const mergeNote = ref('')
+
 const selected = computed(
   () =>
     proposals.value.find(
       (proposal) =>
         proposal.id === selectedId.value,
     ) ?? null,
+)
+
+const mergeProposalId = computed(
+  (): number | null => {
+    const value = route.query.merge
+
+    if (typeof value !== 'string') {
+      return null
+    }
+
+    const id = Number(value)
+
+    if (
+      !Number.isInteger(id) ||
+      id <= 0
+    ) {
+      return null
+    }
+
+    return id
+  },
+)
+
+const mergeMode = computed(
+  () =>
+    mergeProposalId.value !== null &&
+    selected.value?.id ===
+      mergeProposalId.value,
 )
 
 const filteredProposals = computed(() =>
@@ -207,6 +249,54 @@ async function handleExpiredSession(
   return false
 }
 
+async function loadMergePreview(
+  proposalId: number,
+): Promise<void> {
+  mergeLoading.value = true
+  mergePreview.value = null
+  error.value = null
+
+  try {
+    mergePreview.value =
+      await getCurriculumMergePreview(
+        proposalId,
+      )
+  } catch (caught) {
+    if (
+      await handleExpiredSession(
+        caught,
+      )
+    ) {
+      return
+    }
+
+    error.value =
+      requestErrorMessage(
+        caught,
+        'Preview-ul de merge nu a putut fi încărcat.',
+      )
+  } finally {
+    mergeLoading.value = false
+  }
+}
+
+async function closeMergePreview():
+Promise<void> {
+  mergePreview.value = null
+  mergeNote.value = ''
+
+  const query = {
+    ...route.query,
+  }
+
+  delete query.merge
+
+  await router.replace({
+    name: 'curriculum-moderation',
+    query,
+  })
+}
+
 async function loadProposals():
 Promise<void> {
   const previousSelection =
@@ -232,6 +322,35 @@ Promise<void> {
     } else {
       selectedId.value =
         proposals.value[0]?.id ?? null
+    }
+
+    const requestedMergeId =
+      mergeProposalId.value
+
+    if (requestedMergeId !== null) {
+      const mergeProposal =
+        proposals.value.find(
+          (proposal) =>
+            proposal.id ===
+            requestedMergeId,
+        )
+
+      if (
+        mergeProposal &&
+        mergeProposal.status ===
+          'pending' &&
+        mergeProposal.proposal_type ===
+          'merge_candidate'
+      ) {
+        selectedId.value =
+          mergeProposal.id
+
+        await loadMergePreview(
+          mergeProposal.id,
+        )
+      } else {
+        await closeMergePreview()
+      }
     }
   } catch (caught) {
     if (
@@ -260,8 +379,14 @@ function selectProposal(
 ): void {
   selectedId.value = proposal.id
   rejectNote.value = ''
+  mergeNote.value = ''
+  mergePreview.value = null
   error.value = null
   notice.value = null
+
+  if (mergeProposalId.value !== null) {
+    void closeMergePreview()
+  }
 }
 
 async function rejectSelected():
@@ -320,24 +445,100 @@ Promise<void> {
   }
 }
 
-function openMergePreview():
-void {
+async function openMergePreview():
+Promise<void> {
   if (
     !selected.value ||
+    selected.value.status !==
+      'pending' ||
     selected.value.proposal_type !==
       'merge_candidate'
   ) {
     return
   }
 
-  void router.push({
+  await router.push({
     name: 'curriculum-moderation',
     query: {
+      ...route.query,
       merge:
         String(selected.value.id),
     },
   })
+
+  await loadMergePreview(
+    selected.value.id,
+  )
 }
+
+async function confirmSelectedMerge():
+Promise<void> {
+  if (
+    !selected.value ||
+    selected.value.status !==
+      'pending' ||
+    selected.value.proposal_type !==
+      'merge_candidate' ||
+    !mergePreview.value ||
+    mergePreview.value.blocked
+  ) {
+    return
+  }
+
+  const note = mergeNote.value.trim()
+
+  if (note.length > 2000) {
+    error.value =
+      'Nota nu poate depăși 2000 de caractere.'
+
+    return
+  }
+
+  actionLoading.value = true
+  error.value = null
+  notice.value = null
+
+  try {
+    await confirmCurriculumMerge(
+      selected.value.id,
+      {
+        note: note || null,
+      },
+    )
+
+    notice.value =
+      'Merge-ul curricular a fost confirmat.'
+
+    await closeMergePreview()
+    await loadProposals()
+  } catch (caught) {
+    if (
+      await handleExpiredSession(
+        caught,
+      )
+    ) {
+      return
+    }
+
+    error.value =
+      requestErrorMessage(
+        caught,
+        'Merge-ul curricular nu a putut fi confirmat.',
+      )
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+watch(
+  mergeProposalId,
+  (proposalId) => {
+    if (proposalId === null) {
+      mergePreview.value = null
+      mergeNote.value = ''
+    }
+  },
+)
 
 onMounted(() => {
   void loadProposals()
@@ -710,10 +911,265 @@ onMounted(() => {
             </span>
           </div>
 
+          <section
+            v-if="mergeMode"
+            class="merge-preview-panel"
+          >
+            <div class="merge-preview-heading">
+              <div>
+                <span>
+                  PREVIEW FUZIUNE
+                </span>
+
+                <h3>
+                  Impactul merge-ului
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                class="merge-close-button"
+                :disabled="
+                  actionLoading ||
+                  mergeLoading
+                "
+                @click="closeMergePreview"
+              >
+                Închide
+              </button>
+            </div>
+
+            <div
+              v-if="mergeLoading"
+              class="merge-loading"
+            >
+              Se calculează impactul merge-ului...
+            </div>
+
+            <template
+              v-else-if="mergePreview"
+            >
+              <div class="merge-direction">
+                <div>
+                  <span>SURSĂ</span>
+
+                  <strong>
+                    Materia
+                    #{{ mergePreview.source_subject_id }}
+                  </strong>
+                </div>
+
+                <span class="merge-arrow">
+                  →
+                </span>
+
+                <div>
+                  <span>ȚINTĂ CANONICĂ</span>
+
+                  <strong>
+                    Materia
+                    #{{ mergePreview.target_subject_id }}
+                  </strong>
+                </div>
+              </div>
+
+              <div class="merge-impact-grid">
+                <div>
+                  <span>
+                    Curriculum mutate
+                  </span>
+
+                  <strong>
+                    {{
+                      mergePreview
+                        .curriculum_subjects_to_move
+                    }}
+                  </strong>
+                </div>
+
+                <div
+                  :class="{
+                    warning:
+                      mergePreview
+                        .curriculum_subject_collisions >
+                      0,
+                  }"
+                >
+                  <span>
+                    Coliziuni curriculum
+                  </span>
+
+                  <strong>
+                    {{
+                      mergePreview
+                        .curriculum_subject_collisions
+                    }}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Aliasuri mutate
+                  </span>
+
+                  <strong>
+                    {{
+                      mergePreview
+                        .aliases_to_move
+                    }}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Aliasuri deduplicate
+                  </span>
+
+                  <strong>
+                    {{
+                      mergePreview
+                        .aliases_to_deduplicate
+                    }}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Reputații mutate
+                  </span>
+
+                  <strong>
+                    {{
+                      mergePreview
+                        .reputations_to_move
+                    }}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Reputații consolidate
+                  </span>
+
+                  <strong>
+                    {{
+                      mergePreview
+                        .reputations_to_consolidate
+                    }}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Evenimente reputație
+                  </span>
+
+                  <strong>
+                    {{
+                      mergePreview
+                        .reputation_events_to_move
+                    }}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Alias nume sursă
+                  </span>
+
+                  <strong>
+                    {{
+                      mergePreview
+                        .source_name_alias_will_be_created
+                        ? 'Da'
+                        : 'Nu'
+                    }}
+                  </strong>
+                </div>
+              </div>
+
+              <div
+                v-if="mergePreview.blocked"
+                class="merge-blocked"
+                role="alert"
+              >
+                <strong>
+                  Merge blocat
+                </strong>
+
+                <span>
+                  Backend-ul a identificat probleme
+                  care împiedică fuziunea.
+                </span>
+
+                <ul>
+                  <li
+                    v-for="reason in mergePreview.blocking_reasons"
+                    :key="reason"
+                  >
+                    {{ reason }}
+                  </li>
+                </ul>
+              </div>
+
+              <div
+                v-else
+                class="merge-ready"
+              >
+                <strong>
+                  Merge valid
+                </strong>
+
+                <span>
+                  Preview-ul nu conține condiții
+                  care să blocheze fuziunea.
+                </span>
+              </div>
+
+              <label class="merge-note-field">
+                <span>
+                  Notă pentru merge
+                </span>
+
+                <textarea
+                  v-model="mergeNote"
+                  rows="4"
+                  maxlength="2000"
+                  placeholder="Observații despre fuziunea curriculară..."
+                />
+              </label>
+
+              <small class="note-counter">
+                {{ mergeNote.length }}/2000
+              </small>
+
+              <button
+                type="button"
+                class="confirm-merge-button"
+                :disabled="
+                  actionLoading ||
+                  mergePreview.blocked
+                "
+                @click="
+                  confirmSelectedMerge
+                "
+              >
+                {{
+                  actionLoading
+                    ? 'Se confirmă...'
+                    : mergePreview.blocked
+                      ? 'Merge blocat'
+                      : 'Confirmă merge-ul'
+                }}
+              </button>
+            </template>
+          </section>
+
           <div
             v-if="
               selected.status ===
-              'pending'
+                'pending' &&
+              !mergeMode
             "
             class="review-panel"
           >
@@ -1216,6 +1672,201 @@ onMounted(() => {
   color: var(--text);
 }
 
+.merge-preview-panel {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.merge-preview-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.merge-preview-heading > div > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--primary);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.merge-preview-heading h3 {
+  margin: 0;
+  color: var(--text);
+}
+
+.merge-close-button {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.merge-loading {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px dashed var(--border);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.merge-direction {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto
+    minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-top: 18px;
+}
+
+.merge-direction > div {
+  padding: 13px;
+  border-radius: 9px;
+  background: var(--background);
+}
+
+.merge-direction span,
+.merge-direction strong {
+  display: block;
+}
+
+.merge-direction > div > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.merge-direction strong {
+  margin-top: 5px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.merge-arrow {
+  color: var(--primary);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.merge-impact-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.merge-impact-grid > div {
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.merge-impact-grid > div.warning {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.merge-impact-grid span,
+.merge-impact-grid strong {
+  display: block;
+}
+
+.merge-impact-grid span {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.merge-impact-grid strong {
+  margin-top: 5px;
+  color: var(--text);
+  font-size: 18px;
+}
+
+.merge-blocked,
+.merge-ready {
+  display: grid;
+  gap: 5px;
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 9px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.merge-blocked {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.merge-ready {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.merge-blocked ul {
+  margin: 5px 0 0;
+  padding-left: 18px;
+}
+
+.merge-note-field {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.merge-note-field > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.merge-note-field textarea {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+  font: inherit;
+  font-size: 12px;
+}
+
+.confirm-merge-button {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.confirm-merge-button:disabled,
+.merge-close-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1050px) {
   .moderation-layout {
     grid-template-columns: 1fr;
@@ -1247,6 +1898,26 @@ onMounted(() => {
   .preview-metadata {
     grid-template-columns:
       repeat(2, 1fr);
+  }
+
+  .merge-impact-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .merge-direction {
+    grid-template-columns: 1fr;
+  }
+
+  .merge-arrow {
+    transform: rotate(90deg);
+    text-align: center;
+  }
+
+  .merge-impact-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
