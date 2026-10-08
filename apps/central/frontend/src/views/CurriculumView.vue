@@ -4,6 +4,7 @@ import {
   onMounted,
   reactive,
   ref,
+  watch,
 } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -15,9 +16,18 @@ import { ApiError } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 
 import type {
+  CreateCurriculumProposalPayload,
+  CurriculumEntityType,
   CurriculumProposal,
   CurriculumProposalStatus,
+  CurriculumProposalType,
 } from '../types/curriculum'
+
+type ContributorEntityType =
+  Extract<
+    CurriculumEntityType,
+    'domain' | 'concept'
+  >
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -32,11 +42,84 @@ const formError = ref<string | null>(null)
 const notice = ref<string | null>(null)
 
 const form = reactive({
-  name: '',
+  entityType: 'domain' as ContributorEntityType,
+  proposalType: 'create' as CurriculumProposalType,
+
+  entityId: '',
+  duplicateEntityId: '',
+
+  curriculumSubjectId: '',
+  parentDomainId: '',
+
+  title: '',
   code: '',
   description: '',
+  displayOrder: '',
+  alias: '',
+
   reason: '',
 })
+
+const proposalTypeOptions = computed(() => {
+  if (form.entityType === 'domain') {
+    return [
+      {
+        value: 'create' as const,
+        label: 'Creare domeniu',
+      },
+      {
+        value: 'update' as const,
+        label: 'Actualizare domeniu',
+      },
+    ]
+  }
+
+  return [
+    {
+      value: 'create' as const,
+      label: 'Creare concept',
+    },
+    {
+      value: 'update' as const,
+      label: 'Actualizare concept',
+    },
+    {
+      value: 'alias' as const,
+      label: 'Alias concept',
+    },
+    {
+      value: 'merge_candidate' as const,
+      label: 'Posibil duplicat',
+    },
+  ]
+})
+
+const requiresEntityId = computed(
+  () => form.proposalType !== 'create',
+)
+
+const isDomain = computed(
+  () => form.entityType === 'domain',
+)
+
+const isConcept = computed(
+  () => form.entityType === 'concept',
+)
+
+const isCreateOrUpdate = computed(
+  () =>
+    form.proposalType === 'create' ||
+    form.proposalType === 'update',
+)
+
+const isAlias = computed(
+  () => form.proposalType === 'alias',
+)
+
+const isMergeCandidate = computed(
+  () =>
+    form.proposalType === 'merge_candidate',
+)
 
 const stats = computed(() => ({
   total: proposals.value.length,
@@ -72,11 +155,32 @@ function statusLabel(
   return labels[status]
 }
 
+function entityLabel(
+  entityType: CurriculumEntityType,
+): string {
+  const labels: Record<
+    CurriculumEntityType,
+    string
+  > = {
+    subject: 'Materie',
+    domain: 'Domeniu',
+    concept: 'Concept',
+  }
+
+  return labels[entityType]
+}
+
 function proposalTypeLabel(
   proposal: CurriculumProposal,
 ): string {
-  const labels = {
-    create: 'Materie nouă',
+  if (proposal.proposal_type === 'create') {
+    return `${entityLabel(proposal.entity_type)} nou`
+  }
+
+  const labels: Record<
+    Exclude<CurriculumProposalType, 'create'>,
+    string
+  > = {
     update: 'Actualizare',
     alias: 'Alias',
     merge_candidate: 'Posibil duplicat',
@@ -88,6 +192,15 @@ function proposalTypeLabel(
 function proposalTitle(
   proposal: CurriculumProposal,
 ): string {
+  const title = proposal.payload.title
+
+  if (
+    typeof title === 'string' &&
+    title.trim()
+  ) {
+    return title
+  }
+
   const name = proposal.payload.name
 
   if (
@@ -97,8 +210,19 @@ function proposalTitle(
     return name
   }
 
+  const alias = proposal.payload.alias
+
+  if (
+    typeof alias === 'string' &&
+    alias.trim()
+  ) {
+    return alias
+  }
+
   if (proposal.entity_id !== null) {
-    return `Materia #${proposal.entity_id}`
+    return `${entityLabel(
+      proposal.entity_type,
+    )} #${proposal.entity_id}`
   }
 
   return `Propunerea #${proposal.id}`
@@ -198,45 +322,326 @@ Promise<void> {
   }
 }
 
-function resetForm(): void {
-  form.name = ''
+function clearProposalFields(): void {
+  form.entityId = ''
+  form.duplicateEntityId = ''
+  form.curriculumSubjectId = ''
+  form.parentDomainId = ''
+  form.title = ''
   form.code = ''
   form.description = ''
+  form.displayOrder = ''
+  form.alias = ''
+}
+
+function resetForm(): void {
+  form.entityType = 'domain'
+  form.proposalType = 'create'
+
+  clearProposalFields()
+
   form.reason = ''
   formError.value = null
 }
 
-async function saveProposal():
-Promise<void> {
-  formError.value = null
-  notice.value = null
-
-  const name = form.name.trim()
-  const code = form.code.trim()
-  const description =
-    form.description.trim()
-  const reason = form.reason.trim()
-
-  if (!name) {
-    formError.value =
-      'Numele materiei este obligatoriu.'
-
-    return
+function normalizedInput(
+  value: string | number | null | undefined,
+): string {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return ''
   }
 
-  saving.value = true
+  return String(value).trim()
+}
 
-  try {
-    await createCurriculumProposal({
-      entity_type: 'subject',
+function positiveInteger(
+  value: string | number | null | undefined,
+): number | null {
+  const normalized =
+    normalizedInput(value)
+
+  if (!normalized) {
+    return null
+  }
+
+  const number = Number(normalized)
+
+  if (
+    !Number.isInteger(number) ||
+    number <= 0
+  ) {
+    return null
+  }
+
+  return number
+}
+
+function nonNegativeInteger(
+  value: string | number | null | undefined,
+): number | null {
+  const normalized =
+    normalizedInput(value)
+
+  if (!normalized) {
+    return null
+  }
+
+  const number = Number(normalized)
+
+  if (
+    !Number.isInteger(number) ||
+    number < 0
+  ) {
+    return null
+  }
+
+  return number
+}
+
+function buildProposal():
+CreateCurriculumProposalPayload | null {
+  const reason = form.reason.trim()
+
+  const entityId =
+    positiveInteger(form.entityId)
+
+  if (
+    requiresEntityId.value &&
+    entityId === null
+  ) {
+    formError.value =
+      'ID-ul entității este obligatoriu și trebuie să fie un număr pozitiv.'
+
+    return null
+  }
+
+  if (isDomain.value) {
+    if (form.proposalType === 'create') {
+      const curriculumSubjectId =
+        positiveInteger(
+          form.curriculumSubjectId,
+        )
+
+      const title = form.title.trim()
+
+      if (curriculumSubjectId === null) {
+        formError.value =
+          'ID-ul disciplinei curriculare este obligatoriu.'
+
+        return null
+      }
+
+      if (!title) {
+        formError.value =
+          'Titlul domeniului este obligatoriu.'
+
+        return null
+      }
+
+      const parentDomainId =
+        positiveInteger(form.parentDomainId)
+
+      const displayOrder =
+        nonNegativeInteger(form.displayOrder)
+
+      return {
+        entity_type: 'domain',
+        proposal_type: 'create',
+        payload: {
+          curriculum_subject_id:
+            curriculumSubjectId,
+          title,
+          ...(parentDomainId !== null
+            ? {
+                parent_domain_id:
+                  parentDomainId,
+              }
+            : {}),
+          ...(form.description.trim()
+            ? {
+                description:
+                  form.description.trim(),
+              }
+            : {}),
+          ...(displayOrder !== null
+            ? {
+                display_order:
+                  displayOrder,
+              }
+            : {}),
+        },
+        reason: reason || null,
+      }
+    }
+
+    const payload:
+      CreateCurriculumProposalPayload['payload'] =
+      {}
+
+    const curriculumSubjectId =
+      positiveInteger(
+        form.curriculumSubjectId,
+      )
+
+    const parentDomainRaw =
+      normalizedInput(
+        form.parentDomainId,
+      )
+
+    const parentDomainId =
+      positiveInteger(parentDomainRaw)
+
+    const title = form.title.trim()
+    const description =
+      form.description.trim()
+
+    const displayOrderRaw =
+      normalizedInput(
+        form.displayOrder,
+      )
+
+    const displayOrder =
+      nonNegativeInteger(displayOrderRaw)
+
+    if (curriculumSubjectId !== null) {
+      payload.curriculum_subject_id =
+        curriculumSubjectId
+    }
+
+    if (parentDomainRaw) {
+      if (parentDomainId === null) {
+        formError.value =
+          'ID-ul domeniului părinte trebuie să fie un număr pozitiv.'
+
+        return null
+      }
+
+      payload.parent_domain_id =
+        parentDomainId
+    }
+
+    if (title) {
+      payload.title = title
+    }
+
+    if (description) {
+      payload.description = description
+    }
+
+    if (displayOrderRaw) {
+      if (displayOrder === null) {
+        formError.value =
+          'Ordinea de afișare trebuie să fie un număr întreg pozitiv sau zero.'
+
+        return null
+      }
+
+      payload.display_order =
+        displayOrder
+    }
+
+    if (Object.keys(payload).length === 0) {
+      formError.value =
+        'Completează cel puțin un câmp care trebuie actualizat.'
+
+      return null
+    }
+
+    return {
+      entity_type: 'domain',
+      entity_id: entityId!,
+      proposal_type: 'update',
+      payload,
+      reason: reason || null,
+    }
+  }
+
+  if (form.proposalType === 'alias') {
+    const alias = form.alias.trim()
+
+    if (!alias) {
+      formError.value =
+        'Aliasul conceptului este obligatoriu.'
+
+      return null
+    }
+
+    return {
+      entity_type: 'concept',
+      entity_id: entityId!,
+      proposal_type: 'alias',
+      payload: {
+        alias,
+      },
+      reason: reason || null,
+    }
+  }
+
+  if (
+    form.proposalType ===
+    'merge_candidate'
+  ) {
+    const duplicateEntityId =
+      positiveInteger(
+        form.duplicateEntityId,
+      )
+
+    if (duplicateEntityId === null) {
+      formError.value =
+        'ID-ul conceptului canonic este obligatoriu.'
+
+      return null
+    }
+
+    if (duplicateEntityId === entityId) {
+      formError.value =
+        'Conceptul sursă și conceptul țintă trebuie să fie diferite.'
+
+      return null
+    }
+
+    return {
+      entity_type: 'concept',
+      entity_id: entityId!,
+      proposal_type:
+        'merge_candidate',
+      payload: {
+        duplicate_entity_id:
+          duplicateEntityId,
+      },
+      reason: reason || null,
+    }
+  }
+
+  const code = form.code.trim()
+  const title = form.title.trim()
+  const description =
+    form.description.trim()
+
+  if (form.proposalType === 'create') {
+    if (!code) {
+      formError.value =
+        'Codul conceptului este obligatoriu.'
+
+      return null
+    }
+
+    if (!title) {
+      formError.value =
+        'Titlul conceptului este obligatoriu.'
+
+      return null
+    }
+
+    return {
+      entity_type: 'concept',
       proposal_type: 'create',
       payload: {
-        name,
-        ...(code
-          ? {
-              code,
-            }
-          : {}),
+        code,
+        title,
         ...(description
           ? {
               description,
@@ -244,7 +649,58 @@ Promise<void> {
           : {}),
       },
       reason: reason || null,
-    })
+    }
+  }
+
+  const payload:
+    CreateCurriculumProposalPayload['payload'] =
+    {}
+
+  if (code) {
+    payload.code = code
+  }
+
+  if (title) {
+    payload.title = title
+  }
+
+  if (description) {
+    payload.description = description
+  }
+
+  if (Object.keys(payload).length === 0) {
+    formError.value =
+      'Completează cel puțin un câmp care trebuie actualizat.'
+
+    return null
+  }
+
+  return {
+    entity_type: 'concept',
+    entity_id: entityId!,
+    proposal_type: 'update',
+    payload,
+    reason: reason || null,
+  }
+}
+
+async function saveProposal():
+Promise<void> {
+  formError.value = null
+  notice.value = null
+
+  const payload = buildProposal()
+
+  if (!payload) {
+    return
+  }
+
+  saving.value = true
+
+  try {
+    await createCurriculumProposal(
+      payload,
+    )
 
     notice.value =
       'Propunerea a fost trimisă pentru moderare.'
@@ -265,6 +721,28 @@ Promise<void> {
     saving.value = false
   }
 }
+
+watch(
+  () => form.entityType,
+  (entityType) => {
+    clearProposalFields()
+
+    form.proposalType =
+      entityType === 'domain'
+        ? 'create'
+        : 'create'
+
+    formError.value = null
+  },
+)
+
+watch(
+  () => form.proposalType,
+  () => {
+    clearProposalFields()
+    formError.value = null
+  },
+)
 
 onMounted(() => {
   void loadProposals()
@@ -367,8 +845,9 @@ onMounted(() => {
           </strong>
 
           <span>
-            Poți propune prima materie
-            folosind formularul alăturat.
+            Poți propune primul domeniu
+            sau concept folosind formularul
+            alăturat.
           </span>
         </div>
 
@@ -458,16 +937,17 @@ onMounted(() => {
             <span>PROPUNERE NOUĂ</span>
 
             <h2>
-              Propune o materie
+              Contribuie la curriculum
             </h2>
           </div>
         </div>
 
         <p class="curriculum-help">
-          În această etapă poți propune
-          introducerea unei materii noi.
-          Propunerea va fi verificată înainte
-          de a deveni parte din curriculum.
+          Propune domenii și concepte noi,
+          corectează entități existente sau
+          semnalează concepte duplicate.
+          Nicio modificare nu devine canonică
+          fără moderare.
         </p>
 
         <form
@@ -475,36 +955,233 @@ onMounted(() => {
           @submit.prevent="saveProposal"
         >
           <label>
-            <span>Nume materie *</span>
+            <span>Tip entitate *</span>
+
+            <select
+              v-model="form.entityType"
+              data-testid="entity-type"
+            >
+              <option value="domain">
+                Domeniu
+              </option>
+
+              <option value="concept">
+                Concept
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span>Tip propunere *</span>
+
+            <select
+              v-model="form.proposalType"
+              data-testid="proposal-type"
+            >
+              <option
+                v-for="option in proposalTypeOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+
+          <label
+            v-if="requiresEntityId"
+          >
+            <span>
+              ID {{ entityLabel(form.entityType) }} *
+            </span>
 
             <input
-              v-model="form.name"
+              v-model="form.entityId"
+              data-testid="entity-id"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="Ex. 12"
+            >
+          </label>
+
+          <template
+            v-if="
+              isDomain &&
+              isCreateOrUpdate
+            "
+          >
+            <label>
+              <span>
+                ID disciplină curriculară
+                <template
+                  v-if="form.proposalType === 'create'"
+                >
+                  *
+                </template>
+              </span>
+
+              <input
+                v-model="form.curriculumSubjectId"
+                data-testid="curriculum-subject-id"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Ex. 4"
+              >
+            </label>
+
+            <label>
+              <span>
+                Domeniu părinte
+              </span>
+
+              <input
+                v-model="form.parentDomainId"
+                data-testid="parent-domain-id"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="ID domeniu părinte"
+              >
+            </label>
+
+            <label>
+              <span>
+                Titlu
+                <template
+                  v-if="form.proposalType === 'create'"
+                >
+                  *
+                </template>
+              </span>
+
+              <input
+                v-model="form.title"
+                data-testid="title"
+                type="text"
+                maxlength="255"
+                placeholder="Ex. Algebră"
+              >
+            </label>
+
+            <label>
+              <span>Descriere</span>
+
+              <textarea
+                v-model="form.description"
+                data-testid="description"
+                rows="4"
+                placeholder="Descrie domeniul..."
+              />
+            </label>
+
+            <label>
+              <span>Ordine afișare</span>
+
+              <input
+                v-model="form.displayOrder"
+                data-testid="display-order"
+                type="number"
+                min="0"
+                max="65535"
+                step="1"
+                placeholder="Ex. 10"
+              >
+            </label>
+          </template>
+
+          <template
+            v-if="
+              isConcept &&
+              isCreateOrUpdate
+            "
+          >
+            <label>
+              <span>
+                Cod
+                <template
+                  v-if="form.proposalType === 'create'"
+                >
+                  *
+                </template>
+              </span>
+
+              <input
+                v-model="form.code"
+                data-testid="code"
+                type="text"
+                maxlength="128"
+                placeholder="Ex. ALG-ECUATII"
+              >
+            </label>
+
+            <label>
+              <span>
+                Titlu
+                <template
+                  v-if="form.proposalType === 'create'"
+                >
+                  *
+                </template>
+              </span>
+
+              <input
+                v-model="form.title"
+                data-testid="title"
+                type="text"
+                maxlength="255"
+                placeholder="Ex. Ecuații de gradul I"
+              >
+            </label>
+
+            <label>
+              <span>Descriere</span>
+
+              <textarea
+                v-model="form.description"
+                data-testid="description"
+                rows="4"
+                placeholder="Descrie conceptul..."
+              />
+            </label>
+          </template>
+
+          <label
+            v-if="
+              isConcept &&
+              isAlias
+            "
+          >
+            <span>Alias *</span>
+
+            <input
+              v-model="form.alias"
+              data-testid="alias"
               type="text"
               maxlength="255"
-              required
-              placeholder="Ex. Educație media"
+              placeholder="Ex. Ecuații liniare"
             >
           </label>
 
-          <label>
-            <span>Cod propus</span>
+          <label
+            v-if="
+              isConcept &&
+              isMergeCandidate
+            "
+          >
+            <span>
+              ID concept canonic *
+            </span>
 
             <input
-              v-model="form.code"
-              type="text"
-              maxlength="64"
-              placeholder="Ex. EDU-MEDIA"
+              v-model="form.duplicateEntityId"
+              data-testid="duplicate-entity-id"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="Conceptul în care va fi fuzionat"
             >
-          </label>
-
-          <label>
-            <span>Descriere</span>
-
-            <textarea
-              v-model="form.description"
-              rows="5"
-              placeholder="Descrie pe scurt materia propusă..."
-            />
           </label>
 
           <label>
@@ -514,9 +1191,10 @@ onMounted(() => {
 
             <textarea
               v-model="form.reason"
+              data-testid="reason"
               rows="4"
               maxlength="2000"
-              placeholder="De ce ar trebui introdusă această materie?"
+              placeholder="Explică de ce propui această modificare..."
             />
           </label>
 
@@ -829,6 +1507,7 @@ onMounted(() => {
 }
 
 .curriculum-form input,
+.curriculum-form select,
 .curriculum-form textarea {
   width: 100%;
   min-width: 0;
@@ -842,7 +1521,8 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.curriculum-form input {
+.curriculum-form input,
+.curriculum-form select {
   min-height: 40px;
 }
 
@@ -852,6 +1532,7 @@ onMounted(() => {
 }
 
 .curriculum-form input:focus,
+.curriculum-form select:focus,
 .curriculum-form textarea:focus {
   border-color: var(--primary);
   box-shadow:

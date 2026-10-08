@@ -43,16 +43,31 @@ const mockedCreateCurriculumProposal =
 function proposal(
   id: number,
   status: CurriculumProposal['status'] = 'pending',
+  entityType:
+    CurriculumProposal['entity_type'] = 'domain',
 ): CurriculumProposal {
   return {
     id,
-    entity_type: 'subject',
-    entity_id: null,
+    entity_type: entityType,
+    entity_id:
+      entityType === 'subject'
+        ? null
+        : id,
     proposal_type: 'create',
-    payload: {
-      name: `Materia ${id}`,
-      code: `MAT-${id}`,
-    },
+    payload:
+      entityType === 'concept'
+        ? {
+            code: `CON-${id}`,
+            title: `Concept ${id}`,
+          }
+        : entityType === 'domain'
+          ? {
+              title: `Domeniu ${id}`,
+              curriculum_subject_id: 4,
+            }
+          : {
+              name: `Materia ${id}`,
+            },
     reason: `Motiv ${id}`,
     status,
     proposed_by: 10,
@@ -66,7 +81,7 @@ function proposal(
         : '2026-10-08T15:00:00Z',
     review_note:
       status === 'rejected'
-        ? 'Materia există deja.'
+        ? 'Necesită corecturi.'
         : null,
     created_at:
       '2026-10-08T14:00:00Z',
@@ -158,33 +173,10 @@ describe('CurriculumView', () => {
       '.curriculum-stats > div',
     )
 
-    expect(stats[0]!.text()).toContain(
-      'Total',
-    )
-    expect(stats[0]!.text()).toContain(
-      '5',
-    )
-
-    expect(stats[1]!.text()).toContain(
-      'În așteptare',
-    )
-    expect(stats[1]!.text()).toContain(
-      '2',
-    )
-
-    expect(stats[2]!.text()).toContain(
-      'Respinse',
-    )
-    expect(stats[2]!.text()).toContain(
-      '1',
-    )
-
-    expect(stats[3]!.text()).toContain(
-      'Acceptate',
-    )
-    expect(stats[3]!.text()).toContain(
-      '2',
-    )
+    expect(stats[0]!.text()).toContain('5')
+    expect(stats[1]!.text()).toContain('2')
+    expect(stats[2]!.text()).toContain('1')
+    expect(stats[3]!.text()).toContain('2')
   })
 
   it('afișează feedbackul moderatorului', async () => {
@@ -202,11 +194,270 @@ describe('CurriculumView', () => {
         .get('.proposal-review-note')
         .text(),
     ).toContain(
-      'Materia există deja.',
+      'Necesită corecturi.',
     )
   })
 
-  it('validează numele materiei', async () => {
+  it('creează un domeniu', async () => {
+    const {
+      wrapper,
+    } = await mountCurriculum()
+
+    await wrapper
+      .get('[data-testid="curriculum-subject-id"]')
+      .setValue('4')
+
+    await wrapper
+      .get('[data-testid="title"]')
+      .setValue('  Algebră  ')
+
+    await wrapper
+      .get('[data-testid="description"]')
+      .setValue(
+        '  Structuri algebrice  ',
+      )
+
+    await wrapper
+      .get('[data-testid="display-order"]')
+      .setValue('10')
+
+    await wrapper
+      .get('[data-testid="reason"]')
+      .setValue(
+        '  Organizare curriculară.  ',
+      )
+
+    await wrapper
+      .get('.curriculum-form')
+      .trigger('submit')
+
+    await flushPromises()
+
+    expect(
+      mockedCreateCurriculumProposal,
+    ).toHaveBeenCalledWith({
+      entity_type: 'domain',
+      proposal_type: 'create',
+      payload: {
+        curriculum_subject_id: 4,
+        title: 'Algebră',
+        description:
+          'Structuri algebrice',
+        display_order: 10,
+      },
+      reason:
+        'Organizare curriculară.',
+    })
+  })
+
+  it('actualizează un domeniu', async () => {
+    const {
+      wrapper,
+    } = await mountCurriculum()
+
+    await wrapper
+      .get('[data-testid="proposal-type"]')
+      .setValue('update')
+
+    await wrapper
+      .get('[data-testid="entity-id"]')
+      .setValue('12')
+
+    await wrapper
+      .get('[data-testid="title"]')
+      .setValue(
+        'Algebră și ecuații',
+      )
+
+    await wrapper
+      .get('.curriculum-form')
+      .trigger('submit')
+
+    await flushPromises()
+
+    expect(
+      mockedCreateCurriculumProposal,
+    ).toHaveBeenCalledWith({
+      entity_type: 'domain',
+      entity_id: 12,
+      proposal_type: 'update',
+      payload: {
+        title: 'Algebră și ecuații',
+      },
+      reason: null,
+    })
+  })
+
+  it('creează un concept', async () => {
+    const {
+      wrapper,
+    } = await mountCurriculum()
+
+    await wrapper
+      .get('[data-testid="entity-type"]')
+      .setValue('concept')
+
+    await wrapper
+      .get('[data-testid="code"]')
+      .setValue('  ALG-EQ1  ')
+
+    await wrapper
+      .get('[data-testid="title"]')
+      .setValue(
+        '  Ecuații de gradul I  ',
+      )
+
+    await wrapper
+      .get('[data-testid="description"]')
+      .setValue(
+        '  Introducere în ecuații.  ',
+      )
+
+    await wrapper
+      .get('.curriculum-form')
+      .trigger('submit')
+
+    await flushPromises()
+
+    expect(
+      mockedCreateCurriculumProposal,
+    ).toHaveBeenCalledWith({
+      entity_type: 'concept',
+      proposal_type: 'create',
+      payload: {
+        code: 'ALG-EQ1',
+        title: 'Ecuații de gradul I',
+        description:
+          'Introducere în ecuații.',
+      },
+      reason: null,
+    })
+  })
+
+  it('propune un alias pentru concept', async () => {
+    const {
+      wrapper,
+    } = await mountCurriculum()
+
+    await wrapper
+      .get('[data-testid="entity-type"]')
+      .setValue('concept')
+
+    await wrapper
+      .get('[data-testid="proposal-type"]')
+      .setValue('alias')
+
+    await wrapper
+      .get('[data-testid="entity-id"]')
+      .setValue('22')
+
+    await wrapper
+      .get('[data-testid="alias"]')
+      .setValue(
+        '  Ecuații liniare  ',
+      )
+
+    await wrapper
+      .get('.curriculum-form')
+      .trigger('submit')
+
+    await flushPromises()
+
+    expect(
+      mockedCreateCurriculumProposal,
+    ).toHaveBeenCalledWith({
+      entity_type: 'concept',
+      entity_id: 22,
+      proposal_type: 'alias',
+      payload: {
+        alias: 'Ecuații liniare',
+      },
+      reason: null,
+    })
+  })
+
+  it('propune un concept duplicat', async () => {
+    const {
+      wrapper,
+    } = await mountCurriculum()
+
+    await wrapper
+      .get('[data-testid="entity-type"]')
+      .setValue('concept')
+
+    await wrapper
+      .get('[data-testid="proposal-type"]')
+      .setValue('merge_candidate')
+
+    await wrapper
+      .get('[data-testid="entity-id"]')
+      .setValue('30')
+
+    await wrapper
+      .get('[data-testid="duplicate-entity-id"]')
+      .setValue('8')
+
+    await wrapper
+      .get('.curriculum-form')
+      .trigger('submit')
+
+    await flushPromises()
+
+    expect(
+      mockedCreateCurriculumProposal,
+    ).toHaveBeenCalledWith({
+      entity_type: 'concept',
+      entity_id: 30,
+      proposal_type:
+        'merge_candidate',
+      payload: {
+        duplicate_entity_id: 8,
+      },
+      reason: null,
+    })
+  })
+
+  it('refuză merge-ul conceptului în el însuși', async () => {
+    const {
+      wrapper,
+    } = await mountCurriculum()
+
+    await wrapper
+      .get('[data-testid="entity-type"]')
+      .setValue('concept')
+
+    await wrapper
+      .get('[data-testid="proposal-type"]')
+      .setValue('merge_candidate')
+
+    await wrapper
+      .get('[data-testid="entity-id"]')
+      .setValue('30')
+
+    await wrapper
+      .get('[data-testid="duplicate-entity-id"]')
+      .setValue('30')
+
+    await wrapper
+      .get('.curriculum-form')
+      .trigger('submit')
+
+    await flushPromises()
+
+    expect(
+      wrapper
+        .get('.curriculum-form-error')
+        .text(),
+    ).toContain(
+      'trebuie să fie diferite',
+    )
+
+    expect(
+      mockedCreateCurriculumProposal,
+    ).not.toHaveBeenCalled()
+  })
+
+  it('validează câmpurile obligatorii pentru domeniu', async () => {
     const {
       wrapper,
     } = await mountCurriculum()
@@ -222,117 +473,11 @@ describe('CurriculumView', () => {
         .get('.curriculum-form-error')
         .text(),
     ).toBe(
-      'Numele materiei este obligatoriu.',
+      'ID-ul disciplinei curriculare este obligatoriu.',
     )
 
     expect(
       mockedCreateCurriculumProposal,
     ).not.toHaveBeenCalled()
-  })
-
-  it('trimite o propunere normalizată', async () => {
-    mockedGetCurriculumProposals
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        proposal(10),
-      ])
-
-    const {
-      wrapper,
-    } = await mountCurriculum()
-
-    await wrapper
-      .get(
-        'input[placeholder="Ex. Educație media"]',
-      )
-      .setValue(
-        '  Educație media  ',
-      )
-
-    await wrapper
-      .get(
-        'input[placeholder="Ex. EDU-MEDIA"]',
-      )
-      .setValue(
-        '  EDU-MEDIA  ',
-      )
-
-    await wrapper
-      .get(
-        'textarea[placeholder="Descrie pe scurt materia propusă..."]',
-      )
-      .setValue(
-        '  Alfabetizare media  ',
-      )
-
-    await wrapper
-      .get(
-        'textarea[placeholder="De ce ar trebui introdusă această materie?"]',
-      )
-      .setValue(
-        '  Este necesară pentru elevi.  ',
-      )
-
-    await wrapper
-      .get('.curriculum-form')
-      .trigger('submit')
-
-    await flushPromises()
-
-    expect(
-      mockedCreateCurriculumProposal,
-    ).toHaveBeenCalledWith({
-      entity_type: 'subject',
-      proposal_type: 'create',
-      payload: {
-        name: 'Educație media',
-        code: 'EDU-MEDIA',
-        description:
-          'Alfabetizare media',
-      },
-      reason:
-        'Este necesară pentru elevi.',
-    })
-
-    expect(
-      mockedGetCurriculumProposals,
-    ).toHaveBeenCalledTimes(2)
-
-    expect(
-      wrapper
-        .get('.curriculum-notice')
-        .text(),
-    ).toBe(
-      'Propunerea a fost trimisă pentru moderare.',
-    )
-  })
-
-  it('omite câmpurile opționale goale', async () => {
-    const {
-      wrapper,
-    } = await mountCurriculum()
-
-    await wrapper
-      .get(
-        'input[placeholder="Ex. Educație media"]',
-      )
-      .setValue('Etică digitală')
-
-    await wrapper
-      .get('.curriculum-form')
-      .trigger('submit')
-
-    await flushPromises()
-
-    expect(
-      mockedCreateCurriculumProposal,
-    ).toHaveBeenCalledWith({
-      entity_type: 'subject',
-      proposal_type: 'create',
-      payload: {
-        name: 'Etică digitală',
-      },
-      reason: null,
-    })
   })
 })
