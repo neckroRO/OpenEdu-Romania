@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\CurriculumProposalController;
 use App\Http\Controllers\Api\V1\CurriculumProposalModerationController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectCompetencyController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectConceptController;
+use App\Http\Controllers\Api\V1\CurriculumSubjectDomainController;
 use App\Http\Controllers\Api\V1\CurriculumSubjectLessonController;
 use App\Http\Controllers\Api\V1\EducationLevelController;
 use App\Http\Controllers\Api\V1\EducationLevelSubjectController;
@@ -258,6 +259,11 @@ Route::get(
 Route::get(
     '/curriculum-subjects/{curriculumSubject}/concepts',
     [CurriculumSubjectConceptController::class, 'index']
+);
+
+Route::get(
+    '/curriculum-subjects/{curriculumSubject}/domains',
+    [CurriculumSubjectDomainController::class, 'index']
 );
 
 Route::get(
