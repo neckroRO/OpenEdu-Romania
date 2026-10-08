@@ -129,6 +129,55 @@ describe('route guards', () => {
     )
   })
 
+describe('/curriculum', () => {
+  it('trimite vizitatorul neautentificat la login', async () => {
+    await router.push('/curriculum')
+
+    expect(
+      router.currentRoute.value.name,
+    ).toBe('login')
+
+    expect(
+      router.currentRoute.value.query,
+    ).toEqual({
+      redirect: '/curriculum',
+    })
+  })
+
+  it.each([
+    'learner',
+    'guardian',
+  ] as const)(
+    'refuză accesul rolului %s și îl trimite acasă',
+    async (role) => {
+      authenticateAs(role)
+
+      await router.push('/curriculum')
+
+      expect(
+        router.currentRoute.value.name,
+      ).toBe('home')
+    },
+  )
+
+  it.each([
+    'teacher',
+    'moderator',
+    'admin',
+  ] as const)(
+    'permite accesul rolului %s',
+    async (role) => {
+      authenticateAs(role)
+
+      await router.push('/curriculum')
+
+      expect(
+        router.currentRoute.value.name,
+      ).toBe('curriculum')
+    },
+  )
+})
+
   describe('/moderation', () => {
     it('trimite vizitatorul neautentificat la login', async () => {
       await router.push('/moderation')

@@ -29,6 +29,15 @@ const authStore = useAuthStore()
         <span>Zona profesorului</span>
       </RouterLink>
 
+<RouterLink
+  v-if="authStore.canContribute"
+  to="/curriculum"
+  class="nav-item"
+>
+  <span class="nav-icon">◇</span>
+  <span>Curriculum</span>
+</RouterLink>
+
       <RouterLink
         v-if="authStore.canModerate"
         to="/moderation"
