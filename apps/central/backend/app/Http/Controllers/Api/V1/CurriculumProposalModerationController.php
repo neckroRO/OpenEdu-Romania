@@ -7,6 +7,7 @@ use App\Http\Requests\ReviewCurriculumProposalRequest;
 use App\Http\Resources\CurriculumProposalResource;
 use App\Models\CurriculumProposal;
 use App\Services\Curriculum\CurriculumMergeModerationService;
+use App\Services\Curriculum\CurriculumProposalApplicationService;
 use App\Services\Curriculum\CurriculumProposalWorkflow;
 use App\Support\ApiResponse;
 use DomainException;
@@ -35,6 +36,31 @@ class CurriculumProposalModerationController extends Controller
 
         return ApiResponse::success(
             $preview->toArray()
+        );
+    }
+
+    public function approve(
+        ReviewCurriculumProposalRequest $request,
+        CurriculumProposal $proposal,
+        CurriculumProposalApplicationService $service
+    ): JsonResponse {
+        try {
+            $proposal = $service->apply(
+                $proposal,
+                $request->user(),
+                $request->validated()['note'] ?? null
+            );
+        } catch (DomainException $exception) {
+            return ApiResponse::error(
+                code: 'CURRICULUM_PROPOSAL_APPLICATION_INVALID',
+                message: $exception->getMessage(),
+                status: 409,
+            );
+        }
+
+        return ApiResponse::success(
+            (new CurriculumProposalResource($proposal))
+                ->resolve()
         );
     }
 

@@ -94,6 +94,14 @@ Route::middleware('auth:sanctum')
         );
 
         Route::post(
+            '/curriculum/proposals/{proposal}/approve',
+            [
+                CurriculumProposalModerationController::class,
+                'approve',
+            ]
+        );
+
+        Route::post(
             '/curriculum/proposals/{proposal}/reject',
             [
                 CurriculumProposalModerationController::class,
