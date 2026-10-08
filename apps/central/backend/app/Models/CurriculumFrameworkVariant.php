@@ -8,17 +8,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'curriculum_id',
-    'version',
-    'valid_from',
-    'valid_until',
+    'curriculum_version_id',
+    'code',
+    'name',
+    'source_reference',
+    'source_url',
+    'source_annex',
+    'approved_at',
     'status',
 ])]
-class CurriculumVersion extends Model
+class CurriculumFrameworkVariant extends Model
 {
-    public function curriculum(): BelongsTo
+    public function curriculumVersion(): BelongsTo
     {
-        return $this->belongsTo(Curriculum::class);
+        return $this->belongsTo(CurriculumVersion::class);
     }
 
     public function curriculumSubjects(): HasMany
@@ -26,16 +29,10 @@ class CurriculumVersion extends Model
         return $this->hasMany(CurriculumSubject::class);
     }
 
-    public function frameworkVariants(): HasMany
-    {
-        return $this->hasMany(CurriculumFrameworkVariant::class);
-    }
-
     protected function casts(): array
     {
         return [
-            'valid_from' => 'date',
-            'valid_until' => 'date',
+            'approved_at' => 'date',
         ];
     }
 }
