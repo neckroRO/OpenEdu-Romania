@@ -238,13 +238,14 @@ class StoreCurriculumProposalRequest extends FormRequest
                     CurriculumProposalType::Create->value,
                     CurriculumProposalType::Update->value,
                     CurriculumProposalType::Alias->value,
+                    CurriculumProposalType::MergeCandidate->value,
                 ],
                 true
             )
         ) {
             $validator->errors()->add(
                 'proposal_type',
-                'Concept proposals currently support create, update and alias.'
+                'Concept proposals support create, update, alias and merge candidate.'
             );
 
             return;
@@ -253,6 +254,9 @@ class StoreCurriculumProposalRequest extends FormRequest
         $allowed = match ($proposalType) {
             CurriculumProposalType::Alias->value => [
                 'alias',
+            ],
+            CurriculumProposalType::MergeCandidate->value => [
+                'duplicate_entity_id',
             ],
             default => [
                 'code',

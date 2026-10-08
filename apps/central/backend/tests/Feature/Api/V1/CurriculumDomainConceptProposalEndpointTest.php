@@ -314,21 +314,23 @@ class CurriculumDomainConceptProposalEndpointTest extends TestCase
             ]);
     }
 
-    public function test_concept_merge_candidate_is_not_enabled_yet(): void
+    public function test_teacher_can_propose_concept_merge_candidate(): void
     {
+        $teacher = $this->teacher();
+
         $source = Concept::create([
+            'code' => 'linear-equation-community',
+            'title' => 'Ecuație de gradul I',
+            'status' => 'active',
+        ]);
+
+        $target = Concept::create([
             'code' => 'linear-equation',
             'title' => 'Ecuație liniară',
             'status' => 'active',
         ]);
 
-        $target = Concept::create([
-            'code' => 'first-degree-equation',
-            'title' => 'Ecuație de gradul întâi',
-            'status' => 'active',
-        ]);
-
-        Sanctum::actingAs($this->teacher());
+        Sanctum::actingAs($teacher);
 
         $this->postJson(
             '/api/v1/curriculum/proposals',
@@ -339,22 +341,30 @@ class CurriculumDomainConceptProposalEndpointTest extends TestCase
                 'payload' => [
                     'duplicate_entity_id' => $target->id,
                 ],
+                'reason' => 'Concept duplicat.',
             ]
         )
-            ->assertUnprocessable()
+            ->assertCreated()
             ->assertJsonPath(
-                'error.code',
-                'VALIDATION_FAILED'
+                'data.entity_type',
+                'concept'
             )
-            ->assertJsonStructure([
-                'error' => [
-                    'details' => [
-                        'fields' => [
-                            'proposal_type',
-                        ],
-                    ],
-                ],
-            ]);
+            ->assertJsonPath(
+                'data.entity_id',
+                $source->id
+            )
+            ->assertJsonPath(
+                'data.proposal_type',
+                'merge_candidate'
+            )
+            ->assertJsonPath(
+                'data.payload.duplicate_entity_id',
+                $target->id
+            )
+            ->assertJsonPath(
+                'data.status',
+                'pending'
+            );
     }
 
     public function test_unknown_domain_or_concept_cannot_be_updated(): void

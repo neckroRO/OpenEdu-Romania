@@ -5,6 +5,7 @@ namespace Tests\Feature\Api\V1;
 use App\Enums\CurriculumProposalStatus;
 use App\Enums\CurriculumProposalType;
 use App\Enums\UserRole;
+use App\Models\Concept;
 use App\Models\CurriculumProposal;
 use App\Models\Subject;
 use App\Models\User;
@@ -153,6 +154,132 @@ class CurriculumProposalModerationEndpointTest extends TestCase
         );
     }
 
+    public function test_moderator_can_preview_concept_merge_candidate(): void
+    {
+        [$source, $target, $proposal] =
+            $this->makeConceptMergeProposal();
+
+        $moderator = User::factory()->create([
+            'role' => UserRole::Moderator,
+        ]);
+
+        Sanctum::actingAs($moderator);
+
+        $this->getJson(
+            "/api/v1/curriculum/proposals/{$proposal->id}/merge-preview"
+        )
+            ->assertOk()
+            ->assertJsonPath(
+                'data.source_concept_id',
+                $source->id
+            )
+            ->assertJsonPath(
+                'data.target_concept_id',
+                $target->id
+            )
+            ->assertJsonPath(
+                'data.blocked',
+                false
+            )
+            ->assertJsonStructure([
+                'data' => [
+                    'placements_to_move',
+                    'placements_to_deduplicate',
+                    'competencies_to_move',
+                    'competencies_to_deduplicate',
+                    'lessons_to_move',
+                    'lessons_to_deduplicate',
+                    'resources_to_move',
+                    'resources_to_deduplicate',
+                    'aliases_to_move',
+                    'aliases_to_deduplicate',
+                    'source_title_alias_will_be_created',
+                    'blocking_reasons',
+                ],
+            ]);
+    }
+
+    public function test_admin_can_confirm_concept_merge(): void
+    {
+        [$source, $target, $proposal] =
+            $this->makeConceptMergeProposal();
+
+        $admin = User::factory()->create([
+            'role' => UserRole::Admin,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson(
+            "/api/v1/curriculum/proposals/{$proposal->id}/confirm-merge",
+            [
+                'note' => 'Concept duplicat confirmat.',
+            ]
+        )
+            ->assertOk()
+            ->assertJsonPath(
+                'data.proposal.status',
+                'merged'
+            )
+            ->assertJsonPath(
+                'data.merge.entity_type',
+                'concept'
+            )
+            ->assertJsonPath(
+                'data.merge.source_entity_id',
+                $source->id
+            )
+            ->assertJsonPath(
+                'data.merge.target_entity_id',
+                $target->id
+            );
+
+        $this->assertSame(
+            'merged',
+            $source->refresh()->status
+        );
+
+        $this->assertSame(
+            'active',
+            $target->refresh()->status
+        );
+
+        $this->assertSame(
+            CurriculumProposalStatus::Merged,
+            $proposal->refresh()->status
+        );
+
+        $this->assertDatabaseHas(
+            'curriculum_entity_merges',
+            [
+                'entity_type' => 'concept',
+                'source_entity_id' => $source->id,
+                'target_entity_id' => $target->id,
+                'merged_by' => $admin->id,
+            ]
+        );
+
+        $this->assertDatabaseHas(
+            'curriculum_audit_events',
+            [
+                'event_type' => 'proposal_merged',
+                'proposal_id' => $proposal->id,
+                'actor_id' => $admin->id,
+            ]
+        );
+
+        $this->assertDatabaseHas(
+            'curriculum_audit_events',
+            [
+                'event_type' => 'merge_completed',
+                'proposal_id' => $proposal->id,
+                'entity_type' => 'concept',
+                'entity_id' => $target->id,
+                'actor_id' => $admin->id,
+            ]
+        );
+    }
+
     public function test_teacher_cannot_reject_proposal(): void
     {
         [, , $proposal] = $this->makeMergeProposal();
@@ -223,6 +350,45 @@ class CurriculumProposalModerationEndpointTest extends TestCase
         $this->postJson(
             "/api/v1/curriculum/proposals/{$proposal->id}/confirm-merge"
         )->assertUnauthorized();
+    }
+
+    private function makeConceptMergeProposal(): array
+    {
+        $source = Concept::create([
+            'code' => 'linear-equation-community-'.uniqid(),
+            'title' => 'Ecuație de gradul I',
+            'status' => 'active',
+        ]);
+
+        $target = Concept::create([
+            'code' => 'linear-equation-'.uniqid(),
+            'title' => 'Ecuație liniară',
+            'status' => 'active',
+        ]);
+
+        $teacher = User::factory()->create([
+            'role' => UserRole::Teacher,
+        ]);
+
+        $proposal = CurriculumProposal::create([
+            'entity_type' => 'concept',
+            'entity_id' => $source->id,
+            'proposal_type' =>
+                CurriculumProposalType::MergeCandidate,
+            'payload' => [
+                'duplicate_entity_id' => $target->id,
+            ],
+            'reason' => 'Concept duplicat.',
+            'status' =>
+                CurriculumProposalStatus::Pending,
+            'proposed_by' => $teacher->id,
+        ]);
+
+        return [
+            $source,
+            $target,
+            $proposal,
+        ];
     }
 
     private function makeMergeProposal(): array
