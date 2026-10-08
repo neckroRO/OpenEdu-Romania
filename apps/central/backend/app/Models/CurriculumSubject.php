@@ -9,8 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'curriculum_version_id',
+    'curriculum_framework_variant_id',
     'education_level_id',
     'subject_id',
+    'curriculum_area_id',
+    'component',
+    'hours_min',
+    'hours_max',
     'display_order',
     'status',
     'program_reference',
@@ -24,6 +29,11 @@ class CurriculumSubject extends Model
         return $this->belongsTo(CurriculumVersion::class);
     }
 
+    public function curriculumFrameworkVariant(): BelongsTo
+    {
+        return $this->belongsTo(CurriculumFrameworkVariant::class);
+    }
+
     public function educationLevel(): BelongsTo
     {
         return $this->belongsTo(EducationLevel::class);
@@ -32,6 +42,11 @@ class CurriculumSubject extends Model
     public function subject(): BelongsTo
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    public function curriculumArea(): BelongsTo
+    {
+        return $this->belongsTo(CurriculumArea::class);
     }
 
     public function domains(): HasMany
@@ -52,6 +67,8 @@ class CurriculumSubject extends Model
     protected function casts(): array
     {
         return [
+            'hours_min' => 'integer',
+            'hours_max' => 'integer',
             'program_approved_at' => 'date',
         ];
     }
