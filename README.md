@@ -16,7 +16,7 @@ Proiectul a pornit în 2020, în pandemie, și a fost refăcut de la zero în 20
 
 Proiectul e în dezvoltare activă. În octombrie 2026, aplicația centrală are un nucleu care funcționează: catalogul educațional, structura curriculară, lecțiile și versiunile lor, fluxul profesor → moderare → publicare, validarea pedagogică și reputația, conturile cu roluri, administrarea utilizatorilor, o interfață web și un API versionat.
 
-Verificările de la ultima actualizare: 217 teste backend și 128 teste frontend trec, build-ul frontend merge, iar fluxurile principale au fost încercate și manual în browser.
+Verificările de la ultima actualizare: 281 teste backend și 128 teste frontend trec, build-ul frontend merge, iar fluxurile principale au fost încercate și manual în browser.
 
 Atenție totuși: e un punct de reper în dezvoltare, nu o lansare. Platforma nu este pregătită pentru date reale ale elevilor.
 
@@ -135,9 +135,14 @@ Integrarea Central–Local, izolarea datelor, retenția, backup-ul, securitatea 
 | Zona profesorului, moderare, publicare | Funcțional |
 | Validare pedagogică și model de reputație | Implementat |
 | Administrarea utilizatorilor centrali (activare/dezactivare, resetare parolă) | Funcțional |
+| Curriculum oficial România P–VIII și variante de plan-cadru | Implementat |
+| Propuneri și aliasuri pentru curriculum colaborativ | Implementat |
+| Detectarea și sugerarea duplicatelor curriculare | Implementat |
+| Entități canonice și merge auditabil pentru discipline | Implementat |
+| Preview și moderare pentru merge | Implementat |
 | Protecția rutelor în frontend | Funcțional |
 | API `/api/v1` | Funcțional |
-| Teste backend / frontend | 217 / 128 |
+| Teste backend / frontend | 281 / 128 |
 | Build frontend | Funcțional |
 
 Rolurile definite sunt `learner`, `guardian`, `teacher`, `moderator` și `admin`. Rolurile de elev și tutore există în model, dar modulele OpenEdu Local nu sunt construite încă.
@@ -154,7 +159,15 @@ Viziunea și cerințele, auditul prototipului din 2020 (și decizia de a reconst
 
 Gata până acum: modelul curricular și importul, modelul de lecții, asocierea cu conceptele, resursele pe versiuni, consumul public, validarea pedagogică, reputația, administrarea utilizatorilor și conturi demonstrative pentru dezvoltare.
 
-Urmează **07.7, curriculum colaborativ și deduplicare**: propuneri de clase, materii, domenii și concepte, propuneri de modificare, circuit de revizuire cu cereri de corecturi, propuneri de unire cu previzualizarea efectelor, aliasuri, normalizarea denumirilor, detectarea duplicatelor, audit complet, contexte și variante educaționale și posibilitatea de a lucra pe o propunere aflată încă în moderare.
+Din **07.7 – curriculum colaborativ și deduplicare** sunt finalizate:
+
+- **07.7.1A** – modelul curricular oficial România pentru clasele P–VIII, cu arii curriculare, variante de plan-cadru, proveniență oficială și alocări orare;
+- **07.7.1B** – modelul colaborativ pentru propuneri și aliasuri, cu stări, workflow și validare semantică;
+- **07.7.2** – normalizarea denumirilor, aliasuri aprobate, detectarea exactă și fuzzy a duplicatelor și sugestii tipizate;
+- **07.7.3** – entități canonice, aliasuri și merge tranzacțional pentru discipline, cu audit, consolidarea reputației și protejarea structurii curriculare;
+- **07.7.4** – preview pentru efectele unui merge și workflow de moderare pentru propunerile `merge_candidate`.
+
+Urmează **07.7.5 – API, permisiuni și audit pentru curriculum colaborativ**, apoi interfața de administrare și testarea end-to-end. Contextele și variantele educaționale, precum și lucrul pe propuneri aflate încă în moderare, rămân în direcția 07.7 și vor fi introduse incremental.
 
 ### 08 – Editor avansat de lecții
 
