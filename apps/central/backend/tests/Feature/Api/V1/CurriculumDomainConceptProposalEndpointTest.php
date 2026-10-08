@@ -156,6 +156,8 @@ class CurriculumDomainConceptProposalEndpointTest extends TestCase
 
     public function test_teacher_can_propose_concept_creation(): void
     {
+        $domain = $this->domain();
+
         Sanctum::actingAs($this->teacher());
 
         $this->postJson(
@@ -168,6 +170,7 @@ class CurriculumDomainConceptProposalEndpointTest extends TestCase
                     'title' => 'Ecuație liniară',
                     'description' =>
                         'Ecuație de gradul întâi.',
+                    'domain_id' => $domain->id,
                 ],
             ]
         )
@@ -211,6 +214,39 @@ class CurriculumDomainConceptProposalEndpointTest extends TestCase
                         'fields' => [
                             'payload.code',
                             'payload.title',
+                            'payload.domain_id',
+                        ],
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_concept_creation_rejects_unknown_domain(): void
+    {
+        Sanctum::actingAs($this->teacher());
+
+        $this->postJson(
+            '/api/v1/curriculum/proposals',
+            [
+                'entity_type' => 'concept',
+                'proposal_type' => 'create',
+                'payload' => [
+                    'code' => 'linear-equation',
+                    'title' => 'Ecuație liniară',
+                    'domain_id' => 999999,
+                ],
+            ]
+        )
+            ->assertUnprocessable()
+            ->assertJsonPath(
+                'error.code',
+                'VALIDATION_FAILED'
+            )
+            ->assertJsonStructure([
+                'error' => [
+                    'details' => [
+                        'fields' => [
+                            'payload.domain_id',
                         ],
                     ],
                 ],

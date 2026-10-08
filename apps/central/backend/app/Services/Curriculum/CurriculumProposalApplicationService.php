@@ -5,6 +5,7 @@ namespace App\Services\Curriculum;
 use App\Enums\CurriculumProposalStatus;
 use App\Enums\CurriculumProposalType;
 use App\Models\Concept;
+use App\Models\ConceptPlacement;
 use App\Models\CurriculumAlias;
 use App\Models\CurriculumProposal;
 use App\Models\Domain;
@@ -190,7 +191,7 @@ class CurriculumProposalApplicationService
     private function createConcept(
         CurriculumProposal $proposal
     ): Concept {
-        return Concept::create([
+        $concept = Concept::create([
             'code' =>
                 $proposal->payload['code'],
             'title' =>
@@ -199,6 +200,16 @@ class CurriculumProposalApplicationService
                 $proposal->payload['description'] ?? null,
             'status' => 'active',
         ]);
+
+        ConceptPlacement::create([
+            'concept_id' => $concept->id,
+            'domain_id' =>
+                $proposal->payload['domain_id'],
+            'display_order' => 0,
+            'is_core' => true,
+        ]);
+
+        return $concept;
     }
 
     private function updateConcept(

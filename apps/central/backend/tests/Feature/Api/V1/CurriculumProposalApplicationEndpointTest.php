@@ -129,6 +129,7 @@ class CurriculumProposalApplicationEndpointTest extends TestCase
     {
         $teacher = $this->teacher();
         $moderator = $this->moderator();
+        $domain = $this->domain();
 
         $proposal = CurriculumProposal::create([
             'entity_type' => 'concept',
@@ -138,6 +139,7 @@ class CurriculumProposalApplicationEndpointTest extends TestCase
                 'code' => 'linear-equation',
                 'title' => 'Ecuație liniară',
                 'description' => 'Ecuație de gradul întâi.',
+                'domain_id' => $domain->id,
             ],
             'status' => CurriculumProposalStatus::Pending,
             'proposed_by' => $teacher->id,
@@ -164,6 +166,17 @@ class CurriculumProposalApplicationEndpointTest extends TestCase
             'title' => 'Ecuație liniară',
             'status' => 'active',
         ]);
+
+        $this->assertDatabaseHas(
+            'concept_placements',
+            [
+                'concept_id' =>
+                    $proposal->entity_id,
+                'domain_id' => $domain->id,
+                'display_order' => 0,
+                'is_core' => 1,
+            ]
+        );
     }
 
     public function test_moderator_can_apply_concept_update_proposal(): void

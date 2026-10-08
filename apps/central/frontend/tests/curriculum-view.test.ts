@@ -18,6 +18,7 @@ import {
   createRouter,
 } from 'vue-router'
 
+import * as catalogApi from '../src/api/catalog'
 import * as curriculumApi from '../src/api/curriculum'
 import CurriculumView from '../src/views/CurriculumView.vue'
 
@@ -30,6 +31,13 @@ vi.mock('../src/api/curriculum', () => ({
   createCurriculumProposal: vi.fn(),
 }))
 
+vi.mock('../src/api/catalog', () => ({
+  getEducationLevels: vi.fn(),
+  getEducationLevelSubjects: vi.fn(),
+  getCurriculumSubjectDomains: vi.fn(),
+  getCurriculumSubjectConcepts: vi.fn(),
+}))
+
 const mockedGetCurriculumProposals =
   vi.mocked(
     curriculumApi.getCurriculumProposals,
@@ -39,6 +47,106 @@ const mockedCreateCurriculumProposal =
   vi.mocked(
     curriculumApi.createCurriculumProposal,
   )
+
+const mockedGetEducationLevels =
+  vi.mocked(
+    catalogApi.getEducationLevels,
+  )
+
+const mockedGetEducationLevelSubjects =
+  vi.mocked(
+    catalogApi.getEducationLevelSubjects,
+  )
+
+const mockedGetCurriculumSubjectDomains =
+  vi.mocked(
+    catalogApi.getCurriculumSubjectDomains,
+  )
+
+const mockedGetCurriculumSubjectConcepts =
+  vi.mocked(
+    catalogApi.getCurriculumSubjectConcepts,
+  )
+
+const educationLevels = [
+  {
+    id: 7,
+    code: 'grade-7',
+    name: 'Clasa a VII-a',
+    ordinal: 7,
+    education_stage: 'gimnazial',
+  },
+] as any
+
+const curriculumSubjects = [
+  {
+    id: 4,
+    display_order: 1,
+    subject: {
+      id: 3,
+      code: 'mathematics',
+      name: 'Matematică',
+      status: 'active',
+    },
+  },
+] as any
+
+const domains = [
+  {
+    id: 12,
+    title: 'Algebră',
+    description: null,
+    display_order: 1,
+  },
+  {
+    id: 13,
+    title: 'Geometrie',
+    description: null,
+    display_order: 2,
+  },
+] as any
+
+const conceptPlacements = [
+  {
+    id: 1,
+    display_order: 1,
+    is_core: true,
+    domain: domains[0],
+    concept: {
+      id: 22,
+      code: 'linear-equations',
+      title: 'Ecuații de gradul I',
+      description: null,
+      status: 'active',
+    },
+  },
+  {
+    id: 2,
+    display_order: 2,
+    is_core: true,
+    domain: domains[0],
+    concept: {
+      id: 30,
+      code: 'linear-equations-alt',
+      title: 'Ecuații liniare',
+      description: null,
+      status: 'active',
+    },
+  },
+  {
+    id: 3,
+    display_order: 1,
+    is_core: true,
+    domain: domains[1],
+    concept: {
+      id: 8,
+      code: 'geometry-basics',
+      title: 'Elemente de geometrie',
+      description: null,
+      status: 'active',
+    },
+  },
+] as any
 
 function proposal(
   id: number,
@@ -58,11 +166,12 @@ function proposal(
       entityType === 'concept'
         ? {
             code: `CON-${id}`,
-            title: `Concept ${id}`,
+            title: `Noțiune ${id}`,
+            domain_id: 12,
           }
         : entityType === 'domain'
           ? {
-              title: `Domeniu ${id}`,
+              title: `Capitol ${id}`,
               curriculum_subject_id: 4,
             }
           : {
@@ -137,6 +246,24 @@ async function mountCurriculum() {
   }
 }
 
+async function selectCatalog(
+  wrapper: Awaited<
+    ReturnType<typeof mountCurriculum>
+  >['wrapper'],
+): Promise<void> {
+  await wrapper
+    .get('[data-testid="education-level"]')
+    .setValue('7')
+
+  await flushPromises()
+
+  await wrapper
+    .get('[data-testid="curriculum-subject"]')
+    .setValue('4')
+
+  await flushPromises()
+}
+
 describe('CurriculumView', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -149,9 +276,29 @@ describe('CurriculumView', () => {
       .mockResolvedValue(
         proposal(10),
       )
+
+    mockedGetEducationLevels
+      .mockResolvedValue(
+        educationLevels,
+      )
+
+    mockedGetEducationLevelSubjects
+      .mockResolvedValue(
+        curriculumSubjects,
+      )
+
+    mockedGetCurriculumSubjectDomains
+      .mockResolvedValue(
+        domains,
+      )
+
+    mockedGetCurriculumSubjectConcepts
+      .mockResolvedValue(
+        conceptPlacements,
+      )
   })
 
-  it('încarcă propunerile și afișează statisticile', async () => {
+  it('încarcă propunerile, statisticile și nivelurile educaționale', async () => {
     mockedGetCurriculumProposals
       .mockResolvedValue([
         proposal(1, 'pending'),
@@ -169,6 +316,10 @@ describe('CurriculumView', () => {
       mockedGetCurriculumProposals,
     ).toHaveBeenCalledTimes(1)
 
+    expect(
+      mockedGetEducationLevels,
+    ).toHaveBeenCalledTimes(1)
+
     const stats = wrapper.findAll(
       '.curriculum-stats > div',
     )
@@ -177,6 +328,12 @@ describe('CurriculumView', () => {
     expect(stats[1]!.text()).toContain('2')
     expect(stats[2]!.text()).toContain('1')
     expect(stats[3]!.text()).toContain('2')
+
+    expect(
+      wrapper
+        .get('[data-testid="education-level"]')
+        .text(),
+    ).toContain('Clasa a VII-a')
   })
 
   it('afișează feedbackul moderatorului', async () => {
@@ -198,28 +355,22 @@ describe('CurriculumView', () => {
     )
   })
 
-  it('creează un domeniu', async () => {
+  it('creează un capitol folosind nivelul și materia', async () => {
     const {
       wrapper,
     } = await mountCurriculum()
 
-    await wrapper
-      .get('[data-testid="curriculum-subject-id"]')
-      .setValue('4')
+    await selectCatalog(wrapper)
 
     await wrapper
       .get('[data-testid="title"]')
-      .setValue('  Algebră  ')
+      .setValue('  Algebră avansată  ')
 
     await wrapper
       .get('[data-testid="description"]')
       .setValue(
-        '  Structuri algebrice  ',
+        '  Structuri algebrice.  ',
       )
-
-    await wrapper
-      .get('[data-testid="display-order"]')
-      .setValue('10')
 
     await wrapper
       .get('[data-testid="reason"]')
@@ -234,23 +385,30 @@ describe('CurriculumView', () => {
     await flushPromises()
 
     expect(
+      mockedGetEducationLevelSubjects,
+    ).toHaveBeenCalledWith(7)
+
+    expect(
+      mockedGetCurriculumSubjectDomains,
+    ).toHaveBeenCalledWith(4)
+
+    expect(
       mockedCreateCurriculumProposal,
     ).toHaveBeenCalledWith({
       entity_type: 'domain',
       proposal_type: 'create',
       payload: {
         curriculum_subject_id: 4,
-        title: 'Algebră',
+        title: 'Algebră avansată',
         description:
-          'Structuri algebrice',
-        display_order: 10,
+          'Structuri algebrice.',
       },
       reason:
         'Organizare curriculară.',
     })
   })
 
-  it('actualizează un domeniu', async () => {
+  it('actualizează un capitol selectat după nume', async () => {
     const {
       wrapper,
     } = await mountCurriculum()
@@ -258,6 +416,8 @@ describe('CurriculumView', () => {
     await wrapper
       .get('[data-testid="proposal-type"]')
       .setValue('update')
+
+    await selectCatalog(wrapper)
 
     await wrapper
       .get('[data-testid="entity-id"]')
@@ -288,7 +448,11 @@ describe('CurriculumView', () => {
     })
   })
 
-  it('creează un concept', async () => {
+  it('creează o noțiune în capitolul selectat și generează codul intern', async () => {
+    const dateSpy = vi
+      .spyOn(Date, 'now')
+      .mockReturnValue(1_700_000_000_000)
+
     const {
       wrapper,
     } = await mountCurriculum()
@@ -297,9 +461,17 @@ describe('CurriculumView', () => {
       .get('[data-testid="entity-type"]')
       .setValue('concept')
 
+    await selectCatalog(wrapper)
+
+    expect(
+      wrapper.find(
+        '[data-testid="code"]',
+      ).exists(),
+    ).toBe(false)
+
     await wrapper
-      .get('[data-testid="code"]')
-      .setValue('  ALG-EQ1  ')
+      .get('[data-testid="domain-id"]')
+      .setValue('12')
 
     await wrapper
       .get('[data-testid="title"]')
@@ -325,16 +497,20 @@ describe('CurriculumView', () => {
       entity_type: 'concept',
       proposal_type: 'create',
       payload: {
-        code: 'ALG-EQ1',
+        code:
+          'ecuatii-de-gradul-i-loyw3v28',
         title: 'Ecuații de gradul I',
+        domain_id: 12,
         description:
           'Introducere în ecuații.',
       },
       reason: null,
     })
+
+    dateSpy.mockRestore()
   })
 
-  it('propune un alias pentru concept', async () => {
+  it('propune o denumire alternativă pentru noțiunea selectată', async () => {
     const {
       wrapper,
     } = await mountCurriculum()
@@ -346,6 +522,8 @@ describe('CurriculumView', () => {
     await wrapper
       .get('[data-testid="proposal-type"]')
       .setValue('alias')
+
+    await selectCatalog(wrapper)
 
     await wrapper
       .get('[data-testid="entity-id"]')
@@ -376,7 +554,7 @@ describe('CurriculumView', () => {
     })
   })
 
-  it('propune un concept duplicat', async () => {
+  it('propune două noțiuni ca duplicate', async () => {
     const {
       wrapper,
     } = await mountCurriculum()
@@ -388,6 +566,8 @@ describe('CurriculumView', () => {
     await wrapper
       .get('[data-testid="proposal-type"]')
       .setValue('merge_candidate')
+
+    await selectCatalog(wrapper)
 
     await wrapper
       .get('[data-testid="entity-id"]')
@@ -417,7 +597,7 @@ describe('CurriculumView', () => {
     })
   })
 
-  it('refuză merge-ul conceptului în el însuși', async () => {
+  it('nu oferă ca țintă de merge aceeași noțiune selectată ca duplicat', async () => {
     const {
       wrapper,
     } = await mountCurriculum()
@@ -430,34 +610,37 @@ describe('CurriculumView', () => {
       .get('[data-testid="proposal-type"]')
       .setValue('merge_candidate')
 
+    await selectCatalog(wrapper)
+
     await wrapper
       .get('[data-testid="entity-id"]')
       .setValue('30')
 
-    await wrapper
-      .get('[data-testid="duplicate-entity-id"]')
-      .setValue('30')
-
-    await wrapper
-      .get('.curriculum-form')
-      .trigger('submit')
-
-    await flushPromises()
+    const canonicalSelect =
+      wrapper.get(
+        '[data-testid="duplicate-entity-id"]',
+      )
 
     expect(
-      wrapper
-        .get('.curriculum-form-error')
-        .text(),
-    ).toContain(
-      'trebuie să fie diferite',
-    )
+      canonicalSelect
+        .find('option[value="30"]')
+        .exists(),
+    ).toBe(false)
 
     expect(
-      mockedCreateCurriculumProposal,
-    ).not.toHaveBeenCalled()
+      canonicalSelect
+        .find('option[value="22"]')
+        .exists(),
+    ).toBe(true)
+
+    expect(
+      canonicalSelect
+        .find('option[value="8"]')
+        .exists(),
+    ).toBe(true)
   })
 
-  it('validează câmpurile obligatorii pentru domeniu', async () => {
+  it('cere contextul curricular înainte de trimitere', async () => {
     const {
       wrapper,
     } = await mountCurriculum()
@@ -473,7 +656,41 @@ describe('CurriculumView', () => {
         .get('.curriculum-form-error')
         .text(),
     ).toBe(
-      'ID-ul disciplinei curriculare este obligatoriu.',
+      'Selectează nivelul educațional și materia.',
+    )
+
+    expect(
+      mockedCreateCurriculumProposal,
+    ).not.toHaveBeenCalled()
+  })
+
+  it('cere capitolul pentru o noțiune nouă', async () => {
+    const {
+      wrapper,
+    } = await mountCurriculum()
+
+    await wrapper
+      .get('[data-testid="entity-type"]')
+      .setValue('concept')
+
+    await selectCatalog(wrapper)
+
+    await wrapper
+      .get('[data-testid="title"]')
+      .setValue('Ecuații de gradul I')
+
+    await wrapper
+      .get('.curriculum-form')
+      .trigger('submit')
+
+    await flushPromises()
+
+    expect(
+      wrapper
+        .get('.curriculum-form-error')
+        .text(),
+    ).toBe(
+      'Selectează capitolul în care se încadrează noțiunea.',
     )
 
     expect(

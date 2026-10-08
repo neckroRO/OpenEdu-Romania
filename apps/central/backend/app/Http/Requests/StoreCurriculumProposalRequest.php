@@ -90,6 +90,13 @@ class StoreCurriculumProposalRequest extends FormRequest
                 'exists:domains,id',
             ],
 
+            'payload.domain_id' => [
+                'sometimes',
+                'integer',
+                'min:1',
+                'exists:domains,id',
+            ],
+
             'payload.title' => [
                 'sometimes',
                 'string',
@@ -258,11 +265,18 @@ class StoreCurriculumProposalRequest extends FormRequest
             CurriculumProposalType::MergeCandidate->value => [
                 'duplicate_entity_id',
             ],
-            default => [
+            CurriculumProposalType::Create->value => [
+                'code',
+                'title',
+                'description',
+                'domain_id',
+            ],
+            CurriculumProposalType::Update->value => [
                 'code',
                 'title',
                 'description',
             ],
+            default => [],
         };
 
         $this->rejectUnknownPayloadKeys(
@@ -272,7 +286,7 @@ class StoreCurriculumProposalRequest extends FormRequest
         );
 
         if ($proposalType === CurriculumProposalType::Create->value) {
-            foreach (['code', 'title'] as $requiredKey) {
+            foreach (['code', 'title', 'domain_id'] as $requiredKey) {
                 if (
                     ! array_key_exists($requiredKey, $payload)
                     || $payload[$requiredKey] === null
