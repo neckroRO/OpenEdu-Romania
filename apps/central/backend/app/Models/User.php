@@ -37,6 +37,38 @@ class User extends Authenticatable
         return $this->hasMany(ReputationEvent::class);
     }
 
+    public function curriculumProposals(): HasMany
+    {
+        return $this->hasMany(
+            CurriculumProposal::class,
+            'proposed_by'
+        );
+    }
+
+    public function curriculumProposalReviews(): HasMany
+    {
+        return $this->hasMany(
+            CurriculumProposal::class,
+            'reviewed_by'
+        );
+    }
+
+    public function curriculumAliases(): HasMany
+    {
+        return $this->hasMany(
+            CurriculumAlias::class,
+            'created_by'
+        );
+    }
+
+    public function curriculumAliasApprovals(): HasMany
+    {
+        return $this->hasMany(
+            CurriculumAlias::class,
+            'approved_by'
+        );
+    }
+
     protected function casts(): array
     {
         return [
