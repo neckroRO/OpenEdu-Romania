@@ -43,6 +43,23 @@ export async function getCurriculumMergePreview(
   return response.data
 }
 
+export async function approveCurriculumProposal(
+  proposalId: number,
+  payload: ReviewCurriculumProposalPayload = {},
+): Promise<CurriculumProposal> {
+  const response = await apiRequest<
+    ApiResponse<CurriculumProposal>
+  >(
+    `/curriculum/proposals/${proposalId}/approve`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+
+  return response.data
+}
+
 export async function rejectCurriculumProposal(
   proposalId: number,
   payload: ReviewCurriculumProposalPayload = {},
