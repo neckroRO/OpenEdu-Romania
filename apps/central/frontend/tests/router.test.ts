@@ -236,6 +236,75 @@ describe('/curriculum', () => {
     )
   })
 
+describe('/curriculum/moderation', () => {
+  it('trimite vizitatorul neautentificat la login', async () => {
+    await router.push(
+      '/curriculum/moderation',
+    )
+
+    expect(
+      router.currentRoute.value.name,
+    ).toBe('login')
+
+    expect(
+      router.currentRoute.value.query,
+    ).toEqual({
+      redirect:
+        '/curriculum/moderation',
+    })
+  })
+
+  it.each([
+    'learner',
+    'guardian',
+  ] as const)(
+    'refuză accesul rolului %s și îl trimite acasă',
+    async (role) => {
+      authenticateAs(role)
+
+      await router.push(
+        '/curriculum/moderation',
+      )
+
+      expect(
+        router.currentRoute.value.name,
+      ).toBe('home')
+    },
+  )
+
+  it('trimite profesorul către zona teacher', async () => {
+    authenticateAs('teacher')
+
+    await router.push(
+      '/curriculum/moderation',
+    )
+
+    expect(
+      router.currentRoute.value.name,
+    ).toBe('teacher')
+  })
+
+  it.each([
+    'moderator',
+    'admin',
+  ] as const)(
+    'permite accesul rolului %s',
+    async (role) => {
+      authenticateAs(role)
+
+      await router.push(
+        '/curriculum/moderation',
+      )
+
+      expect(
+        router.currentRoute.value.name,
+      ).toBe(
+        'curriculum-moderation',
+      )
+    },
+  )
+})
+
   describe('/admin/users', () => {
     it('trimite vizitatorul neautentificat la login', async () => {
       await router.push('/admin/users')

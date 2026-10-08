@@ -43,6 +43,18 @@ const router = createRouter({
     requiresContributor: true,
   },
 },
+
+{
+  path: 'curriculum/moderation',
+  name: 'curriculum-moderation',
+  component: () =>
+    import('../views/CurriculumModerationView.vue'),
+  meta: {
+    requiresAuth: true,
+    requiresModerator: true,
+  },
+},
+
         {
           path: 'moderation',
           name: 'moderation',
