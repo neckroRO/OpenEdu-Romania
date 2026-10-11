@@ -92,6 +92,54 @@ class CurriculumDomainConceptProposalEndpointTest extends TestCase
             ]);
     }
 
+    public function test_domain_creation_rejects_parent_from_another_curriculum_subject(): void
+    {
+        $curriculumSubject =
+            $this->curriculumSubject();
+
+        $otherCurriculumSubject =
+            $this->curriculumSubject();
+
+        $foreignParent = Domain::create([
+            'curriculum_subject_id' =>
+                $otherCurriculumSubject->id,
+            'title' => 'Capitol străin',
+            'description' => null,
+            'display_order' => 1,
+        ]);
+
+        Sanctum::actingAs($this->teacher());
+
+        $this->postJson(
+            '/api/v1/curriculum/proposals',
+            [
+                'entity_type' => 'domain',
+                'proposal_type' => 'create',
+                'payload' => [
+                    'curriculum_subject_id' =>
+                        $curriculumSubject->id,
+                    'parent_domain_id' =>
+                        $foreignParent->id,
+                    'title' => 'Subcapitol',
+                ],
+            ]
+        )
+            ->assertUnprocessable()
+            ->assertJsonPath(
+                'error.code',
+                'VALIDATION_FAILED'
+            )
+            ->assertJsonStructure([
+                'error' => [
+                    'details' => [
+                        'fields' => [
+                            'payload.parent_domain_id',
+                        ],
+                    ],
+                ],
+            ]);
+    }
+
     public function test_teacher_can_propose_domain_update(): void
     {
         $teacher = $this->teacher();
@@ -119,6 +167,51 @@ class CurriculumDomainConceptProposalEndpointTest extends TestCase
                 'data.payload.title',
                 'Algebră și structuri'
             );
+    }
+
+    public function test_domain_update_rejects_parent_from_another_curriculum_subject(): void
+    {
+        $domain = $this->domain();
+
+        $otherCurriculumSubject =
+            $this->curriculumSubject();
+
+        $foreignParent = Domain::create([
+            'curriculum_subject_id' =>
+                $otherCurriculumSubject->id,
+            'title' => 'Capitol străin',
+            'description' => null,
+            'display_order' => 1,
+        ]);
+
+        Sanctum::actingAs($this->teacher());
+
+        $this->postJson(
+            '/api/v1/curriculum/proposals',
+            [
+                'entity_type' => 'domain',
+                'entity_id' => $domain->id,
+                'proposal_type' => 'update',
+                'payload' => [
+                    'parent_domain_id' =>
+                        $foreignParent->id,
+                ],
+            ]
+        )
+            ->assertUnprocessable()
+            ->assertJsonPath(
+                'error.code',
+                'VALIDATION_FAILED'
+            )
+            ->assertJsonStructure([
+                'error' => [
+                    'details' => [
+                        'fields' => [
+                            'payload.parent_domain_id',
+                        ],
+                    ],
+                ],
+            ]);
     }
 
     public function test_domain_merge_candidate_is_rejected(): void

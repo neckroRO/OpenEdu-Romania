@@ -231,6 +231,103 @@ class StoreCurriculumProposalRequest extends FormRequest
             'domains',
             'domain'
         );
+
+        $this->validateDomainParentScope(
+            $validator,
+            $proposalType,
+            $payload
+        );
+    }
+
+    private function validateDomainParentScope(
+        Validator $validator,
+        mixed $proposalType,
+        array $payload
+    ): void {
+        if (
+            ! array_key_exists(
+                'parent_domain_id',
+                $payload
+            )
+            || $payload['parent_domain_id'] === null
+        ) {
+            return;
+        }
+
+        $parentDomainId =
+            (int) $payload['parent_domain_id'];
+
+        $curriculumSubjectId = null;
+
+        if (
+            $proposalType
+            === CurriculumProposalType::Create->value
+        ) {
+            if (
+                ! array_key_exists(
+                    'curriculum_subject_id',
+                    $payload
+                )
+            ) {
+                return;
+            }
+
+            $curriculumSubjectId =
+                (int) $payload[
+                    'curriculum_subject_id'
+                ];
+        } elseif (
+            $proposalType
+            === CurriculumProposalType::Update->value
+        ) {
+            $entityId = $this->input('entity_id');
+
+            if (
+                ! is_int($entityId)
+                && ! ctype_digit(
+                    (string) $entityId
+                )
+            ) {
+                return;
+            }
+
+            $curriculumSubjectId =
+                \DB::table('domains')
+                    ->where(
+                        'id',
+                        (int) $entityId
+                    )
+                    ->value(
+                        'curriculum_subject_id'
+                    );
+
+            if ($curriculumSubjectId === null) {
+                return;
+            }
+
+            $curriculumSubjectId =
+                (int) $curriculumSubjectId;
+        }
+
+        if ($curriculumSubjectId === null) {
+            return;
+        }
+
+        $parentMatchesScope =
+            \DB::table('domains')
+                ->where('id', $parentDomainId)
+                ->where(
+                    'curriculum_subject_id',
+                    $curriculumSubjectId
+                )
+                ->exists();
+
+        if (! $parentMatchesScope) {
+            $validator->errors()->add(
+                'payload.parent_domain_id',
+                'The parent domain must belong to the same curriculum subject.'
+            );
+        }
     }
 
     private function validateConceptProposal(
