@@ -1,5 +1,7 @@
 export type CurriculumEntityType =
   | 'subject'
+  | 'domain'
+  | 'concept'
 
 export type CurriculumProposalType =
   | 'create'
@@ -15,6 +17,21 @@ export type CurriculumProposalStatus =
 
 export type CurriculumProposalPayload =
   Record<string, unknown> & {
+    // Subject / legacy collaborative curriculum
+    name?: string
+
+    // Domain
+    curriculum_subject_id?: number
+    parent_domain_id?: number | null
+    title?: string
+    description?: string | null
+    display_order?: number
+
+    // Concept
+    code?: string
+    alias?: string
+
+    // Merge candidate
     duplicate_entity_id?: number
   }
 
@@ -46,7 +63,7 @@ export interface ReviewCurriculumProposalPayload {
   note?: string | null
 }
 
-export interface CurriculumMergePreview {
+export interface SubjectCurriculumMergePreview {
   source_subject_id: number
   target_subject_id: number
   curriculum_subjects_to_move: number
@@ -60,6 +77,35 @@ export interface CurriculumMergePreview {
   blocked: boolean
   blocking_reasons: string[]
 }
+
+export interface ConceptCurriculumMergePreview {
+  source_concept_id: number
+  target_concept_id: number
+
+  placements_to_move: number
+  placements_to_deduplicate: number
+
+  competencies_to_move: number
+  competencies_to_deduplicate: number
+
+  lessons_to_move: number
+  lessons_to_deduplicate: number
+
+  resources_to_move: number
+  resources_to_deduplicate: number
+
+  aliases_to_move: number
+  aliases_to_deduplicate: number
+
+  source_title_alias_will_be_created: boolean
+
+  blocked: boolean
+  blocking_reasons: string[]
+}
+
+export type CurriculumMergePreview =
+  | SubjectCurriculumMergePreview
+  | ConceptCurriculumMergePreview
 
 export interface CurriculumMerge {
   id: number

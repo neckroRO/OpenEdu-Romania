@@ -5,6 +5,7 @@ import type {
   ConceptPlacement,
   ConceptResourceLink,
   CurriculumSubject,
+  Domain,
   EducationLevel,
 } from '../types/catalog'
 
@@ -20,6 +21,18 @@ export async function getEducationLevelSubjects(
 ): Promise<CurriculumSubject[]> {
   const response = await apiRequest<ApiResponse<CurriculumSubject[]>>(
     `/education-levels/${educationLevelId}/subjects`,
+  )
+
+  return response.data
+}
+
+export async function getCurriculumSubjectDomains(
+  curriculumSubjectId: number,
+): Promise<Domain[]> {
+  const response = await apiRequest<
+    ApiResponse<Domain[]>
+  >(
+    `/curriculum-subjects/${curriculumSubjectId}/domains`,
   )
 
   return response.data

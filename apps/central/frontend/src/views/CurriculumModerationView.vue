@@ -11,6 +11,7 @@ import {
 } from 'vue-router'
 
 import {
+  approveCurriculumProposal,
   confirmCurriculumMerge,
   getCurriculumMergePreview,
   getCurriculumProposals,
@@ -48,6 +49,32 @@ const mergePreview =
 
 const mergeLoading = ref(false)
 const mergeNote = ref('')
+
+const subjectMergePreview = computed(() => {
+  const preview = mergePreview.value
+
+  if (
+    preview &&
+    'source_subject_id' in preview
+  ) {
+    return preview
+  }
+
+  return null
+})
+
+const conceptMergePreview = computed(() => {
+  const preview = mergePreview.value
+
+  if (
+    preview &&
+    'source_concept_id' in preview
+  ) {
+    return preview
+  }
+
+  return null
+})
 
 const selected = computed(
   () =>
@@ -152,7 +179,7 @@ function typeLabel(
     CurriculumProposalType,
     string
   > = {
-    create: 'Materie nouă',
+    create: 'Creare',
     update: 'Actualizare',
     alias: 'Alias',
     merge_candidate: 'Posibil duplicat',
@@ -161,9 +188,33 @@ function typeLabel(
   return labels[type]
 }
 
+function entityLabel(
+  entityType: CurriculumProposal['entity_type'],
+): string {
+  const labels: Record<
+    CurriculumProposal['entity_type'],
+    string
+  > = {
+    subject: 'Materie',
+    domain: 'Domeniu',
+    concept: 'Concept',
+  }
+
+  return labels[entityType]
+}
+
 function proposalTitle(
   proposal: CurriculumProposal,
 ): string {
+  const title = proposal.payload.title
+
+  if (
+    typeof title === 'string' &&
+    title.trim()
+  ) {
+    return title
+  }
+
   const name = proposal.payload.name
 
   if (
@@ -173,8 +224,19 @@ function proposalTitle(
     return name
   }
 
+  const alias = proposal.payload.alias
+
+  if (
+    typeof alias === 'string' &&
+    alias.trim()
+  ) {
+    return alias
+  }
+
   if (proposal.entity_id !== null) {
-    return `Materia #${proposal.entity_id}`
+    return `${entityLabel(
+      proposal.entity_type,
+    )} #${proposal.entity_id}`
   }
 
   return `Propunerea #${proposal.id}`
@@ -386,6 +448,64 @@ function selectProposal(
 
   if (mergeProposalId.value !== null) {
     void closeMergePreview()
+  }
+}
+
+async function approveSelected():
+Promise<void> {
+  if (
+    !selected.value ||
+    selected.value.status !== 'pending' ||
+    selected.value.proposal_type ===
+      'merge_candidate'
+  ) {
+    return
+  }
+
+  const note =
+    rejectNote.value.trim()
+
+  if (note.length > 2000) {
+    error.value =
+      'Nota nu poate depăși 2000 de caractere.'
+
+    return
+  }
+
+  actionLoading.value = true
+  error.value = null
+  notice.value = null
+
+  try {
+    await approveCurriculumProposal(
+      selected.value.id,
+      {
+        note: note || null,
+      },
+    )
+
+    rejectNote.value = ''
+
+    notice.value =
+      'Propunerea a fost aprobată și aplicată.'
+
+    await loadProposals()
+  } catch (caught) {
+    if (
+      await handleExpiredSession(
+        caught,
+      )
+    ) {
+      return
+    }
+
+    error.value =
+      requestErrorMessage(
+        caught,
+        'Propunerea nu a putut fi aprobată.',
+      )
+  } finally {
+    actionLoading.value = false
   }
 }
 
@@ -650,7 +770,7 @@ onMounted(() => {
           </option>
 
           <option value="create">
-            Materie nouă
+            Creare
           </option>
 
           <option value="update">
@@ -949,144 +1069,323 @@ onMounted(() => {
             <template
               v-else-if="mergePreview"
             >
-              <div class="merge-direction">
-                <div>
-                  <span>SURSĂ</span>
+              <template
+                v-if="subjectMergePreview"
+              >
+                <div class="merge-direction">
+                  <div>
+                    <span>SURSĂ</span>
 
-                  <strong>
-                    Materia
-                    #{{ mergePreview.source_subject_id }}
-                  </strong>
-                </div>
+                    <strong>
+                      Materia
+                      #{{ subjectMergePreview.source_subject_id }}
+                    </strong>
+                  </div>
 
-                <span class="merge-arrow">
-                  →
-                </span>
-
-                <div>
-                  <span>ȚINTĂ CANONICĂ</span>
-
-                  <strong>
-                    Materia
-                    #{{ mergePreview.target_subject_id }}
-                  </strong>
-                </div>
-              </div>
-
-              <div class="merge-impact-grid">
-                <div>
-                  <span>
-                    Curriculum mutate
+                  <span class="merge-arrow">
+                    →
                   </span>
 
-                  <strong>
-                    {{
-                      mergePreview
-                        .curriculum_subjects_to_move
-                    }}
-                  </strong>
+                  <div>
+                    <span>ȚINTĂ CANONICĂ</span>
+
+                    <strong>
+                      Materia
+                      #{{ subjectMergePreview.target_subject_id }}
+                    </strong>
+                  </div>
                 </div>
 
-                <div
-                  :class="{
-                    warning:
-                      mergePreview
-                        .curriculum_subject_collisions >
-                      0,
-                  }"
-                >
-                  <span>
-                    Coliziuni curriculum
+                <div class="merge-impact-grid">
+                  <div>
+                    <span>
+                      Curriculum mutate
+                    </span>
+
+                    <strong>
+                      {{
+                        subjectMergePreview
+                          .curriculum_subjects_to_move
+                      }}
+                    </strong>
+                  </div>
+
+                  <div
+                    :class="{
+                      warning:
+                        subjectMergePreview
+                          .curriculum_subject_collisions >
+                        0,
+                    }"
+                  >
+                    <span>
+                      Coliziuni curriculum
+                    </span>
+
+                    <strong>
+                      {{
+                        subjectMergePreview
+                          .curriculum_subject_collisions
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Aliasuri mutate
+                    </span>
+
+                    <strong>
+                      {{
+                        subjectMergePreview
+                          .aliases_to_move
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Aliasuri deduplicate
+                    </span>
+
+                    <strong>
+                      {{
+                        subjectMergePreview
+                          .aliases_to_deduplicate
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Reputații mutate
+                    </span>
+
+                    <strong>
+                      {{
+                        subjectMergePreview
+                          .reputations_to_move
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Reputații consolidate
+                    </span>
+
+                    <strong>
+                      {{
+                        subjectMergePreview
+                          .reputations_to_consolidate
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Evenimente reputație
+                    </span>
+
+                    <strong>
+                      {{
+                        subjectMergePreview
+                          .reputation_events_to_move
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Alias nume sursă
+                    </span>
+
+                    <strong>
+                      {{
+                        subjectMergePreview
+                          .source_name_alias_will_be_created
+                          ? 'Da'
+                          : 'Nu'
+                      }}
+                    </strong>
+                  </div>
+                </div>
+              </template>
+
+              <template
+                v-else-if="conceptMergePreview"
+              >
+                <div class="merge-direction">
+                  <div>
+                    <span>SURSĂ</span>
+
+                    <strong>
+                      Concept
+                      #{{ conceptMergePreview.source_concept_id }}
+                    </strong>
+                  </div>
+
+                  <span class="merge-arrow">
+                    →
                   </span>
 
-                  <strong>
-                    {{
-                      mergePreview
-                        .curriculum_subject_collisions
-                    }}
-                  </strong>
+                  <div>
+                    <span>ȚINTĂ CANONICĂ</span>
+
+                    <strong>
+                      Concept
+                      #{{ conceptMergePreview.target_concept_id }}
+                    </strong>
+                  </div>
                 </div>
 
-                <div>
-                  <span>
-                    Aliasuri mutate
-                  </span>
+                <div class="merge-impact-grid">
+                  <div>
+                    <span>
+                      Plasări mutate
+                    </span>
 
-                  <strong>
-                    {{
-                      mergePreview
-                        .aliases_to_move
-                    }}
-                  </strong>
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .placements_to_move
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Plasări deduplicate
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .placements_to_deduplicate
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Competențe mutate
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .competencies_to_move
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Competențe deduplicate
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .competencies_to_deduplicate
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Lecții mutate
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .lessons_to_move
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Lecții deduplicate
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .lessons_to_deduplicate
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Resurse mutate
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .resources_to_move
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Resurse deduplicate
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .resources_to_deduplicate
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Aliasuri mutate
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .aliases_to_move
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Aliasuri deduplicate
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .aliases_to_deduplicate
+                      }}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>
+                      Alias titlu sursă
+                    </span>
+
+                    <strong>
+                      {{
+                        conceptMergePreview
+                          .source_title_alias_will_be_created
+                          ? 'Da'
+                          : 'Nu'
+                      }}
+                    </strong>
+                  </div>
                 </div>
-
-                <div>
-                  <span>
-                    Aliasuri deduplicate
-                  </span>
-
-                  <strong>
-                    {{
-                      mergePreview
-                        .aliases_to_deduplicate
-                    }}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    Reputații mutate
-                  </span>
-
-                  <strong>
-                    {{
-                      mergePreview
-                        .reputations_to_move
-                    }}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    Reputații consolidate
-                  </span>
-
-                  <strong>
-                    {{
-                      mergePreview
-                        .reputations_to_consolidate
-                    }}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    Evenimente reputație
-                  </span>
-
-                  <strong>
-                    {{
-                      mergePreview
-                        .reputation_events_to_move
-                    }}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>
-                    Alias nume sursă
-                  </span>
-
-                  <strong>
-                    {{
-                      mergePreview
-                        .source_name_alias_will_be_created
-                        ? 'Da'
-                        : 'Nu'
-                    }}
-                  </strong>
-                </div>
-              </div>
+              </template>
 
               <div
                 v-if="mergePreview.blocked"
@@ -1199,6 +1498,23 @@ onMounted(() => {
             </small>
 
             <div class="review-actions">
+              <button
+                v-if="
+                  selected.proposal_type !==
+                  'merge_candidate'
+                "
+                type="button"
+                class="approve-button"
+                :disabled="actionLoading"
+                @click="approveSelected"
+              >
+                {{
+                  actionLoading
+                    ? 'Se procesează...'
+                    : 'Aprobă propunerea'
+                }}
+              </button>
+
               <button
                 type="button"
                 class="reject-button"
@@ -1634,6 +1950,7 @@ onMounted(() => {
   margin-top: 14px;
 }
 
+.approve-button,
 .reject-button,
 .preview-button {
   min-height: 38px;
@@ -1641,6 +1958,12 @@ onMounted(() => {
   border-radius: 8px;
   font-weight: 800;
   cursor: pointer;
+}
+
+.approve-button {
+  border: 0;
+  background: var(--primary);
+  color: #fff;
 }
 
 .reject-button {

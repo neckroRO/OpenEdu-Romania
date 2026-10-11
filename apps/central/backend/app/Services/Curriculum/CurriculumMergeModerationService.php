@@ -2,21 +2,26 @@
 
 namespace App\Services\Curriculum;
 
+use App\Data\Curriculum\ConceptMergePreview;
 use App\Data\Curriculum\SubjectMergePreview;
 use App\Enums\CurriculumProposalStatus;
 use App\Enums\CurriculumProposalType;
+use App\Models\Concept;
 use App\Models\CurriculumEntityMerge;
 use App\Models\CurriculumProposal;
 use App\Models\Subject;
 use App\Models\User;
 use DomainException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class CurriculumMergeModerationService
 {
     public function __construct(
-        private readonly SubjectMergePreviewService $previewService,
-        private readonly SubjectMergeService $mergeService,
+        private readonly SubjectMergePreviewService $subjectPreviewService,
+        private readonly SubjectMergeService $subjectMergeService,
+        private readonly ConceptMergePreviewService $conceptPreviewService,
+        private readonly ConceptMergeService $conceptMergeService,
         private readonly CurriculumProposalWorkflow $proposalWorkflow,
         private readonly CurriculumAuditService $auditService,
     ) {
@@ -24,15 +29,30 @@ class CurriculumMergeModerationService
 
     public function preview(
         CurriculumProposal $proposal
-    ): SubjectMergePreview {
+    ): SubjectMergePreview|ConceptMergePreview {
         $this->assertMergeCandidate($proposal);
 
-        [$source, $target] = $this->resolveSubjects($proposal);
-
-        return $this->previewService->preview(
-            $source,
-            $target
+        [$source, $target] = $this->resolveEntities(
+            $proposal
         );
+
+        return match ($proposal->entity_type) {
+            'subject' =>
+                $this->subjectPreviewService->preview(
+                    $source,
+                    $target
+                ),
+
+            'concept' =>
+                $this->conceptPreviewService->preview(
+                    $source,
+                    $target
+                ),
+
+            default => throw new DomainException(
+                'Unsupported merge proposal entity type.'
+            ),
+        };
     }
 
     public function confirm(
@@ -55,11 +75,12 @@ class CurriculumMergeModerationService
             $moderator,
             $note
         ): CurriculumEntityMerge {
-            [$source, $target] = $this->resolveSubjects(
+            [$source, $target] = $this->resolveEntities(
                 $proposal
             );
 
-            $preview = $this->previewService->preview(
+            $preview = $this->previewResolved(
+                $proposal,
                 $source,
                 $target
             );
@@ -70,7 +91,8 @@ class CurriculumMergeModerationService
                 );
             }
 
-            $merge = $this->mergeService->merge(
+            $merge = $this->mergeResolved(
+                $proposal,
                 $source,
                 $target,
                 $moderator,
@@ -87,7 +109,7 @@ class CurriculumMergeModerationService
                 eventType: 'merge_completed',
                 actor: $moderator,
                 proposal: $proposal->refresh(),
-                entityType: 'subject',
+                entityType: $proposal->entity_type,
                 entityId: $target->id,
                 metadata: [
                     'merge_id' => $merge->id,
@@ -99,6 +121,60 @@ class CurriculumMergeModerationService
 
             return $merge;
         });
+    }
+
+    private function previewResolved(
+        CurriculumProposal $proposal,
+        Model $source,
+        Model $target
+    ): SubjectMergePreview|ConceptMergePreview {
+        return match ($proposal->entity_type) {
+            'subject' =>
+                $this->subjectPreviewService->preview(
+                    $source,
+                    $target
+                ),
+
+            'concept' =>
+                $this->conceptPreviewService->preview(
+                    $source,
+                    $target
+                ),
+
+            default => throw new DomainException(
+                'Unsupported merge proposal entity type.'
+            ),
+        };
+    }
+
+    private function mergeResolved(
+        CurriculumProposal $proposal,
+        Model $source,
+        Model $target,
+        User $moderator,
+        ?string $reason
+    ): CurriculumEntityMerge {
+        return match ($proposal->entity_type) {
+            'subject' =>
+                $this->subjectMergeService->merge(
+                    $source,
+                    $target,
+                    $moderator,
+                    $reason
+                ),
+
+            'concept' =>
+                $this->conceptMergeService->merge(
+                    $source,
+                    $target,
+                    $moderator,
+                    $reason
+                ),
+
+            default => throw new DomainException(
+                'Unsupported merge proposal entity type.'
+            ),
+        };
     }
 
     private function assertMergeCandidate(
@@ -113,14 +189,69 @@ class CurriculumMergeModerationService
             );
         }
 
-        if ($proposal->entity_type !== 'subject') {
+        if (
+            ! in_array(
+                $proposal->entity_type,
+                ['subject', 'concept'],
+                true
+            )
+        ) {
             throw new DomainException(
-                'Only subject merge proposals are currently supported.'
+                'Only subject and concept merge proposals are supported.'
             );
         }
     }
 
+    private function resolveEntities(
+        CurriculumProposal $proposal
+    ): array {
+        return match ($proposal->entity_type) {
+            'subject' => $this->resolveSubjects($proposal),
+            'concept' => $this->resolveConcepts($proposal),
+
+            default => throw new DomainException(
+                'Unsupported merge proposal entity type.'
+            ),
+        };
+    }
+
     private function resolveSubjects(
+        CurriculumProposal $proposal
+    ): array {
+        [$sourceId, $targetId] =
+            $this->resolveEntityIds($proposal);
+
+        $source = Subject::find($sourceId);
+        $target = Subject::find($targetId);
+
+        if ($source === null || $target === null) {
+            throw new DomainException(
+                'Merge proposal references an unknown subject.'
+            );
+        }
+
+        return [$source, $target];
+    }
+
+    private function resolveConcepts(
+        CurriculumProposal $proposal
+    ): array {
+        [$sourceId, $targetId] =
+            $this->resolveEntityIds($proposal);
+
+        $source = Concept::find($sourceId);
+        $target = Concept::find($targetId);
+
+        if ($source === null || $target === null) {
+            throw new DomainException(
+                'Merge proposal references an unknown concept.'
+            );
+        }
+
+        return [$source, $target];
+    }
+
+    private function resolveEntityIds(
         CurriculumProposal $proposal
     ): array {
         if ($proposal->entity_id === null) {
@@ -138,15 +269,9 @@ class CurriculumMergeModerationService
             );
         }
 
-        $source = Subject::find($proposal->entity_id);
-        $target = Subject::find($targetId);
-
-        if ($source === null || $target === null) {
-            throw new DomainException(
-                'Merge proposal references an unknown subject.'
-            );
-        }
-
-        return [$source, $target];
+        return [
+            (int) $proposal->entity_id,
+            $targetId,
+        ];
     }
 }

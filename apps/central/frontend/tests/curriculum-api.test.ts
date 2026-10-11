@@ -8,6 +8,7 @@ import {
 
 import * as client from '../src/api/client'
 import {
+  approveCurriculumProposal,
   confirmCurriculumMerge,
   createCurriculumProposal,
   getCurriculumMergePreview,
@@ -153,6 +154,106 @@ describe('curriculum API', () => {
     expect(result.blocked).toBe(false)
     expect(result.source_subject_id).toBe(5)
     expect(result.target_subject_id).toBe(3)
+  })
+
+  it('încarcă preview-ul unui merge de concepte', async () => {
+    mockedApiRequest.mockResolvedValue({
+      data: {
+        source_concept_id: 15,
+        target_concept_id: 8,
+        placements_to_move: 2,
+        placements_to_deduplicate: 1,
+        competencies_to_move: 3,
+        competencies_to_deduplicate: 1,
+        lessons_to_move: 4,
+        lessons_to_deduplicate: 2,
+        resources_to_move: 5,
+        resources_to_deduplicate: 1,
+        aliases_to_move: 2,
+        aliases_to_deduplicate: 1,
+        source_title_alias_will_be_created: true,
+        blocked: false,
+        blocking_reasons: [],
+      },
+      meta: {
+        request_id: null,
+      },
+    })
+
+    const result =
+      await getCurriculumMergePreview(21)
+
+    expect(
+      mockedApiRequest,
+    ).toHaveBeenCalledWith(
+      '/curriculum/proposals/21/merge-preview',
+    )
+
+    expect(result.blocked).toBe(false)
+
+    expect(
+      'source_concept_id' in result
+        ? result.source_concept_id
+        : null,
+    ).toBe(15)
+
+    expect(
+      'target_concept_id' in result
+        ? result.target_concept_id
+        : null,
+    ).toBe(8)
+  })
+
+  it('aprobă o propunere curriculară', async () => {
+    const payload = {
+      note: 'Propunere validată pedagogic.',
+    }
+
+    mockedApiRequest.mockResolvedValue({
+      data: {
+        id: 20,
+        entity_type: 'domain',
+        entity_id: null,
+        proposal_type: 'create',
+        payload: {
+          curriculum_subject_id: 4,
+          title: 'Algebră',
+          description: null,
+          parent_domain_id: null,
+          display_order: 10,
+        },
+        reason: 'Domeniu curricular nou',
+        status: 'approved',
+        proposed_by: 10,
+        reviewed_by: 2,
+        reviewed_at: '2026-10-08T17:00:00Z',
+        review_note: payload.note,
+        created_at: null,
+        updated_at: null,
+      },
+      meta: {
+        request_id: null,
+      },
+    })
+
+    const result =
+      await approveCurriculumProposal(
+        20,
+        payload,
+      )
+
+    expect(
+      mockedApiRequest,
+    ).toHaveBeenCalledWith(
+      '/curriculum/proposals/20/approve',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    )
+
+    expect(result.entity_type).toBe('domain')
+    expect(result.status).toBe('approved')
   })
 
   it('respinge o propunere', async () => {

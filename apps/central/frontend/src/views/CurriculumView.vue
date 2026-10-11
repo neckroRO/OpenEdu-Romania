@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import {
   computed,
+  nextTick,
   onMounted,
   reactive,
   ref,
+  watch,
 } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -11,18 +13,56 @@ import {
   createCurriculumProposal,
   getCurriculumProposals,
 } from '../api/curriculum'
+import {
+  getCurriculumSubjectConcepts,
+  getCurriculumSubjectDomains,
+  getEducationLevels,
+  getEducationLevelSubjects,
+} from '../api/catalog'
 import { ApiError } from '../api/client'
 import { useAuthStore } from '../stores/auth'
 
 import type {
+  Concept,
+  ConceptPlacement,
+  CurriculumSubject,
+  Domain,
+  EducationLevel,
+} from '../types/catalog'
+
+import type {
+  CreateCurriculumProposalPayload,
+  CurriculumEntityType,
   CurriculumProposal,
   CurriculumProposalStatus,
+  CurriculumProposalType,
 } from '../types/curriculum'
+
+type ContributorEntityType =
+  Extract<
+    CurriculumEntityType,
+    'domain' | 'concept'
+  >
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const proposals = ref<CurriculumProposal[]>([])
+
+const educationLevels =
+  ref<EducationLevel[]>([])
+
+const curriculumSubjects =
+  ref<CurriculumSubject[]>([])
+
+const domains =
+  ref<Domain[]>([])
+
+const conceptPlacements =
+  ref<ConceptPlacement[]>([])
+
+const catalogLoading = ref(false)
+const catalogError = ref<string | null>(null)
 
 const loading = ref(false)
 const saving = ref(false)
@@ -31,12 +71,118 @@ const loadError = ref<string | null>(null)
 const formError = ref<string | null>(null)
 const notice = ref<string | null>(null)
 
+const switchingToChapterCreation =
+  ref(false)
+
 const form = reactive({
-  name: '',
-  code: '',
+  entityType: 'domain' as ContributorEntityType,
+  proposalType: 'create' as CurriculumProposalType,
+
+  educationLevelId: '',
+  curriculumSubjectId: '',
+
+  entityId: '',
+  duplicateEntityId: '',
+  parentDomainId: '',
+  domainId: '',
+
+  title: '',
   description: '',
+  alias: '',
+
   reason: '',
 })
+
+const proposalTypeOptions = computed(() => {
+  if (form.entityType === 'domain') {
+    return [
+      {
+        value: 'create' as const,
+        label: 'Capitol nou',
+      },
+      {
+        value: 'update' as const,
+        label: 'Modificare capitol',
+      },
+    ]
+  }
+
+  return [
+    {
+      value: 'create' as const,
+      label: 'Noțiune nouă',
+    },
+    {
+      value: 'update' as const,
+      label: 'Modificare noțiune',
+    },
+    {
+      value: 'alias' as const,
+      label: 'Denumire alternativă',
+    },
+    {
+      value: 'merge_candidate' as const,
+      label: 'Noțiuni duplicate',
+    },
+  ]
+})
+
+const requiresEntityId = computed(
+  () => form.proposalType !== 'create',
+)
+
+const isDomain = computed(
+  () => form.entityType === 'domain',
+)
+
+const isConcept = computed(
+  () => form.entityType === 'concept',
+)
+
+const isCreateOrUpdate = computed(
+  () =>
+    form.proposalType === 'create' ||
+    form.proposalType === 'update',
+)
+
+const isAlias = computed(
+  () => form.proposalType === 'alias',
+)
+
+const isMergeCandidate = computed(
+  () =>
+    form.proposalType === 'merge_candidate',
+)
+
+const availableConcepts = computed<Concept[]>(
+  () => {
+    const concepts = new Map<number, Concept>()
+
+    for (
+      const placement of conceptPlacements.value
+    ) {
+      concepts.set(
+        placement.concept.id,
+        placement.concept,
+      )
+    }
+
+    return Array.from(
+      concepts.values(),
+    ).sort((left, right) =>
+      left.title.localeCompare(
+        right.title,
+        'ro',
+      ),
+    )
+  },
+)
+
+const requiresCatalogContext = computed(
+  () =>
+    isDomain.value ||
+    isConcept.value,
+)
 
 const stats = computed(() => ({
   total: proposals.value.length,
@@ -72,14 +218,44 @@ function statusLabel(
   return labels[status]
 }
 
+function entityLabel(
+  entityType: CurriculumEntityType,
+): string {
+  const labels: Record<
+    CurriculumEntityType,
+    string
+  > = {
+    subject: 'Materie',
+    domain: 'Capitol',
+    concept: 'Noțiune',
+  }
+
+  return labels[entityType]
+}
+
 function proposalTypeLabel(
   proposal: CurriculumProposal,
 ): string {
-  const labels = {
-    create: 'Materie nouă',
-    update: 'Actualizare',
-    alias: 'Alias',
-    merge_candidate: 'Posibil duplicat',
+  if (proposal.proposal_type === 'create') {
+    const labels: Record<
+      CurriculumEntityType,
+      string
+    > = {
+      subject: 'Materie nouă',
+      domain: 'Capitol nou',
+      concept: 'Noțiune nouă',
+    }
+
+    return labels[proposal.entity_type]
+  }
+
+  const labels: Record<
+    Exclude<CurriculumProposalType, 'create'>,
+    string
+  > = {
+    update: 'Modificare',
+    alias: 'Denumire alternativă',
+    merge_candidate: 'Noțiuni duplicate',
   }
 
   return labels[proposal.proposal_type]
@@ -88,6 +264,15 @@ function proposalTypeLabel(
 function proposalTitle(
   proposal: CurriculumProposal,
 ): string {
+  const title = proposal.payload.title
+
+  if (
+    typeof title === 'string' &&
+    title.trim()
+  ) {
+    return title
+  }
+
   const name = proposal.payload.name
 
   if (
@@ -97,8 +282,19 @@ function proposalTitle(
     return name
   }
 
+  const alias = proposal.payload.alias
+
+  if (
+    typeof alias === 'string' &&
+    alias.trim()
+  ) {
+    return alias
+  }
+
   if (proposal.entity_id !== null) {
-    return `Materia #${proposal.entity_id}`
+    return `${entityLabel(
+      proposal.entity_type,
+    )} #${proposal.entity_id}`
   }
 
   return `Propunerea #${proposal.id}`
@@ -174,6 +370,112 @@ async function handleExpiredSession(
   return false
 }
 
+async function loadEducationLevels():
+Promise<void> {
+  catalogLoading.value = true
+  catalogError.value = null
+
+  try {
+    educationLevels.value =
+      await getEducationLevels()
+  } catch (error) {
+    if (await handleExpiredSession(error)) {
+      return
+    }
+
+    educationLevels.value = []
+
+    catalogError.value =
+      requestErrorMessage(
+        error,
+        'Nivelurile educaționale nu au putut fi încărcate.',
+      )
+  } finally {
+    catalogLoading.value = false
+  }
+}
+
+async function loadSubjects(
+  educationLevelId: number,
+): Promise<void> {
+  catalogLoading.value = true
+  catalogError.value = null
+
+  curriculumSubjects.value = []
+  domains.value = []
+  conceptPlacements.value = []
+
+  form.curriculumSubjectId = ''
+  form.entityId = ''
+  form.duplicateEntityId = ''
+  form.parentDomainId = ''
+  form.domainId = ''
+
+  try {
+    curriculumSubjects.value =
+      await getEducationLevelSubjects(
+        educationLevelId,
+      )
+  } catch (error) {
+    if (await handleExpiredSession(error)) {
+      return
+    }
+
+    catalogError.value =
+      requestErrorMessage(
+        error,
+        'Materiile nu au putut fi încărcate.',
+      )
+  } finally {
+    catalogLoading.value = false
+  }
+}
+
+async function loadSubjectStructure(
+  curriculumSubjectId: number,
+): Promise<void> {
+  catalogLoading.value = true
+  catalogError.value = null
+
+  domains.value = []
+  conceptPlacements.value = []
+
+  form.entityId = ''
+  form.duplicateEntityId = ''
+  form.parentDomainId = ''
+  form.domainId = ''
+
+  try {
+    const [
+      loadedDomains,
+      loadedConcepts,
+    ] = await Promise.all([
+      getCurriculumSubjectDomains(
+        curriculumSubjectId,
+      ),
+      getCurriculumSubjectConcepts(
+        curriculumSubjectId,
+      ),
+    ])
+
+    domains.value = loadedDomains
+    conceptPlacements.value =
+      loadedConcepts
+  } catch (error) {
+    if (await handleExpiredSession(error)) {
+      return
+    }
+
+    catalogError.value =
+      requestErrorMessage(
+        error,
+        'Structura materiei nu a putut fi încărcată.',
+      )
+  } finally {
+    catalogLoading.value = false
+  }
+}
+
 async function loadProposals():
 Promise<void> {
   loading.value = true
@@ -198,45 +500,302 @@ Promise<void> {
   }
 }
 
-function resetForm(): void {
-  form.name = ''
-  form.code = ''
+function clearProposalFields(): void {
+  form.educationLevelId = ''
+  form.curriculumSubjectId = ''
+  form.entityId = ''
+  form.duplicateEntityId = ''
+  form.parentDomainId = ''
+  form.domainId = ''
+  form.title = ''
   form.description = ''
+  form.alias = ''
+
+  curriculumSubjects.value = []
+  domains.value = []
+  conceptPlacements.value = []
+
+  catalogError.value = null
+}
+
+function resetForm(): void {
+  form.entityType = 'domain'
+  form.proposalType = 'create'
+
+  clearProposalFields()
+
   form.reason = ''
   formError.value = null
 }
 
-async function saveProposal():
-Promise<void> {
-  formError.value = null
-  notice.value = null
-
-  const name = form.name.trim()
-  const code = form.code.trim()
-  const description =
-    form.description.trim()
-  const reason = form.reason.trim()
-
-  if (!name) {
-    formError.value =
-      'Numele materiei este obligatoriu.'
-
-    return
+function normalizedInput(
+  value: string | number | null | undefined,
+): string {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return ''
   }
 
-  saving.value = true
+  return String(value).trim()
+}
 
-  try {
-    await createCurriculumProposal({
-      entity_type: 'subject',
+function generateConceptCode(
+  title: string,
+): string {
+  const slug = title
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 72)
+
+  const suffix =
+    Date.now().toString(36)
+
+  return `${
+    slug || 'notiune'
+  }-${suffix}`
+}
+
+function positiveInteger(
+  value: string | number | null | undefined,
+): number | null {
+  const normalized =
+    normalizedInput(value)
+
+  if (!normalized) {
+    return null
+  }
+
+  const number = Number(normalized)
+
+  if (
+    !Number.isInteger(number) ||
+    number <= 0
+  ) {
+    return null
+  }
+
+  return number
+}
+
+
+function buildProposal():
+CreateCurriculumProposalPayload | null {
+  const reason = form.reason.trim()
+
+  const curriculumSubjectId =
+    positiveInteger(
+      form.curriculumSubjectId,
+    )
+
+  const entityId =
+    positiveInteger(form.entityId)
+
+  if (
+    requiresCatalogContext.value &&
+    curriculumSubjectId === null
+  ) {
+    formError.value =
+      'Selectează nivelul educațional și materia.'
+
+    return null
+  }
+
+  if (
+    requiresEntityId.value &&
+    entityId === null
+  ) {
+    formError.value =
+      `Selectează ${isDomain.value ? 'capitolul' : 'noțiunea'} pe care vrei să o modifici.`
+
+    return null
+  }
+
+  if (isDomain.value) {
+    const title = form.title.trim()
+    const description =
+      form.description.trim()
+
+    if (
+      form.proposalType === 'create'
+    ) {
+      if (!title) {
+        formError.value =
+          'Titlul capitolului este obligatoriu.'
+
+        return null
+      }
+
+      const parentDomainId =
+        positiveInteger(
+          form.parentDomainId,
+        )
+
+      return {
+        entity_type: 'domain',
+        proposal_type: 'create',
+        payload: {
+          curriculum_subject_id:
+            curriculumSubjectId!,
+          title,
+          ...(parentDomainId !== null
+            ? {
+                parent_domain_id:
+                  parentDomainId,
+              }
+            : {}),
+          ...(description
+            ? {
+                description,
+              }
+            : {}),
+        },
+        reason: reason || null,
+      }
+    }
+
+    const payload:
+      CreateCurriculumProposalPayload['payload'] =
+      {}
+
+    if (title) {
+      payload.title = title
+    }
+
+    if (description) {
+      payload.description = description
+    }
+
+    if (
+      form.parentDomainId ===
+      '__root__'
+    ) {
+      payload.parent_domain_id = null
+    } else {
+      const parentDomainId =
+        positiveInteger(
+          form.parentDomainId,
+        )
+
+      if (parentDomainId !== null) {
+        if (parentDomainId === entityId) {
+          formError.value =
+            'Un capitol nu poate fi propriul său părinte.'
+
+          return null
+        }
+
+        payload.parent_domain_id =
+          parentDomainId
+      }
+    }
+
+    if (Object.keys(payload).length === 0) {
+      formError.value =
+        'Completează cel puțin un câmp care trebuie actualizat.'
+
+      return null
+    }
+
+    return {
+      entity_type: 'domain',
+      entity_id: entityId!,
+      proposal_type: 'update',
+      payload,
+      reason: reason || null,
+    }
+  }
+
+  if (form.proposalType === 'alias') {
+    const alias = form.alias.trim()
+
+    if (!alias) {
+      formError.value =
+        'Denumirea alternativă este obligatorie.'
+
+      return null
+    }
+
+    return {
+      entity_type: 'concept',
+      entity_id: entityId!,
+      proposal_type: 'alias',
+      payload: {
+        alias,
+      },
+      reason: reason || null,
+    }
+  }
+
+  if (
+    form.proposalType ===
+    'merge_candidate'
+  ) {
+    const duplicateEntityId =
+      positiveInteger(
+        form.duplicateEntityId,
+      )
+
+    if (duplicateEntityId === null) {
+      formError.value =
+        'Selectează noțiunea care trebuie păstrată.'
+
+      return null
+    }
+
+    if (duplicateEntityId === entityId) {
+      formError.value =
+        'Noțiunea duplicată și noțiunea păstrată trebuie să fie diferite.'
+
+      return null
+    }
+
+    return {
+      entity_type: 'concept',
+      entity_id: entityId!,
+      proposal_type:
+        'merge_candidate',
+      payload: {
+        duplicate_entity_id:
+          duplicateEntityId,
+      },
+      reason: reason || null,
+    }
+  }
+
+  const title = form.title.trim()
+  const description =
+    form.description.trim()
+
+  if (form.proposalType === 'create') {
+    const domainId =
+      positiveInteger(form.domainId)
+
+    if (domainId === null) {
+      formError.value =
+        'Selectează capitolul în care se încadrează noțiunea.'
+
+      return null
+    }
+
+    if (!title) {
+      formError.value =
+        'Titlul noțiunii este obligatoriu.'
+
+      return null
+    }
+
+    return {
+      entity_type: 'concept',
       proposal_type: 'create',
       payload: {
-        name,
-        ...(code
-          ? {
-              code,
-            }
-          : {}),
+        code: generateConceptCode(title),
+        title,
+        domain_id: domainId,
         ...(description
           ? {
               description,
@@ -244,7 +803,76 @@ Promise<void> {
           : {}),
       },
       reason: reason || null,
-    })
+    }
+  }
+
+  const payload:
+    CreateCurriculumProposalPayload['payload'] =
+    {}
+
+  if (title) {
+    payload.title = title
+  }
+
+  if (description) {
+    payload.description = description
+  }
+
+  if (Object.keys(payload).length === 0) {
+    formError.value =
+      'Completează cel puțin un câmp care trebuie actualizat.'
+
+    return null
+  }
+
+  return {
+    entity_type: 'concept',
+    entity_id: entityId!,
+    proposal_type: 'update',
+    payload,
+    reason: reason || null,
+  }
+}
+async function startChapterCreation():
+Promise<void> {
+  switchingToChapterCreation.value = true
+
+  form.entityType = 'domain'
+  form.proposalType = 'create'
+
+  form.entityId = ''
+  form.duplicateEntityId = ''
+  form.parentDomainId = ''
+  form.domainId = ''
+  form.title = ''
+  form.description = ''
+  form.alias = ''
+
+  formError.value = null
+  notice.value = null
+
+  await nextTick()
+
+  switchingToChapterCreation.value = false
+}
+
+async function saveProposal():
+Promise<void> {
+  formError.value = null
+  notice.value = null
+
+  const payload = buildProposal()
+
+  if (!payload) {
+    return
+  }
+
+  saving.value = true
+
+  try {
+    await createCurriculumProposal(
+      payload,
+    )
 
     notice.value =
       'Propunerea a fost trimisă pentru moderare.'
@@ -266,8 +894,102 @@ Promise<void> {
   }
 }
 
+watch(
+  () => form.entityType,
+  () => {
+    if (switchingToChapterCreation.value) {
+      return
+    }
+
+    clearProposalFields()
+    form.proposalType = 'create'
+    formError.value = null
+  },
+)
+
+watch(
+  () => form.proposalType,
+  () => {
+    if (switchingToChapterCreation.value) {
+      return
+    }
+
+    clearProposalFields()
+    formError.value = null
+  },
+)
+
+watch(
+  () => form.educationLevelId,
+  (value) => {
+    const educationLevelId =
+      positiveInteger(value)
+
+    if (educationLevelId === null) {
+      curriculumSubjects.value = []
+      domains.value = []
+      conceptPlacements.value = []
+
+      form.curriculumSubjectId = ''
+      form.entityId = ''
+      form.duplicateEntityId = ''
+      form.parentDomainId = ''
+      form.domainId = ''
+
+      return
+    }
+
+    void loadSubjects(
+      educationLevelId,
+    )
+  },
+)
+
+watch(
+  () => form.curriculumSubjectId,
+  (value) => {
+    const curriculumSubjectId =
+      positiveInteger(value)
+
+    if (curriculumSubjectId === null) {
+      domains.value = []
+      conceptPlacements.value = []
+
+      form.entityId = ''
+      form.duplicateEntityId = ''
+      form.parentDomainId = ''
+      form.domainId = ''
+
+      return
+    }
+
+    void loadSubjectStructure(
+      curriculumSubjectId,
+    )
+  },
+)
+
+watch(
+  () => form.entityId,
+  (value) => {
+    if (
+      form.proposalType ===
+        'merge_candidate' &&
+      normalizedInput(value) ===
+        normalizedInput(
+          form.duplicateEntityId,
+        )
+    ) {
+      form.duplicateEntityId = ''
+    }
+  },
+)
+
 onMounted(() => {
-  void loadProposals()
+  void Promise.all([
+    loadProposals(),
+    loadEducationLevels(),
+  ])
 })
 </script>
 
@@ -367,8 +1089,9 @@ onMounted(() => {
           </strong>
 
           <span>
-            Poți propune prima materie
-            folosind formularul alăturat.
+            Poți propune primul capitol
+            sau prima noțiune folosind formularul
+            alăturat.
           </span>
         </div>
 
@@ -458,16 +1181,17 @@ onMounted(() => {
             <span>PROPUNERE NOUĂ</span>
 
             <h2>
-              Propune o materie
+              Contribuie la curriculum
             </h2>
           </div>
         </div>
 
         <p class="curriculum-help">
-          În această etapă poți propune
-          introducerea unei materii noi.
-          Propunerea va fi verificată înainte
-          de a deveni parte din curriculum.
+          Propune capitole și noțiuni noi,
+          îmbunătățește structura existentă sau
+          semnalează noțiuni care se repetă.
+          Nicio modificare nu devine canonică
+          fără moderare.
         </p>
 
         <form
@@ -475,37 +1199,392 @@ onMounted(() => {
           @submit.prevent="saveProposal"
         >
           <label>
-            <span>Nume materie *</span>
+            <span>Ce dorești să propui? *</span>
+
+            <select
+              v-model="form.entityType"
+              data-testid="entity-type"
+            >
+              <option value="domain">
+                Capitol
+              </option>
+
+              <option value="concept">
+                Noțiune
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span>Tip contribuție *</span>
+
+            <select
+              v-model="form.proposalType"
+              data-testid="proposal-type"
+            >
+              <option
+                v-for="option in proposalTypeOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+
+          <template
+            v-if="requiresCatalogContext"
+          >
+            <label>
+              <span>Nivel educațional *</span>
+
+              <select
+                v-model="form.educationLevelId"
+                data-testid="education-level"
+                :disabled="catalogLoading"
+              >
+                <option value="">
+                  Selectează nivelul
+                </option>
+
+                <option
+                  v-for="level in educationLevels"
+                  :key="level.id"
+                  :value="String(level.id)"
+                >
+                  {{ level.name }}
+                </option>
+              </select>
+            </label>
+
+            <label>
+              <span>Materie *</span>
+
+              <select
+                v-model="form.curriculumSubjectId"
+                data-testid="curriculum-subject"
+                :disabled="
+                  !form.educationLevelId ||
+                  catalogLoading
+                "
+              >
+                <option value="">
+                  Selectează materia
+                </option>
+
+                <option
+                  v-for="subject in curriculumSubjects"
+                  :key="subject.id"
+                  :value="String(subject.id)"
+                >
+                  {{ subject.subject.name }}
+                </option>
+              </select>
+            </label>
+          </template>
+
+          <label
+            v-if="
+              isDomain &&
+              form.proposalType === 'update'
+            "
+          >
+            <span>Capitol *</span>
+
+            <select
+              v-model="form.entityId"
+              data-testid="entity-id"
+              :disabled="
+                !form.curriculumSubjectId ||
+                catalogLoading
+              "
+            >
+              <option value="">
+                Selectează capitolul
+              </option>
+
+              <option
+                v-for="domain in domains"
+                :key="domain.id"
+                :value="String(domain.id)"
+              >
+                {{ domain.title }}
+              </option>
+            </select>
+          </label>
+
+          <label
+            v-if="
+              isConcept &&
+              form.proposalType !== 'create'
+            "
+          >
+            <span>
+              {{
+                isMergeCandidate
+                  ? 'Noțiunea duplicată *'
+                  : 'Noțiune *'
+              }}
+            </span>
+
+            <select
+              v-model="form.entityId"
+              data-testid="entity-id"
+              :disabled="
+                !form.curriculumSubjectId ||
+                catalogLoading
+              "
+            >
+              <option value="">
+                Selectează noțiunea
+              </option>
+
+              <option
+                v-for="concept in availableConcepts"
+                :key="concept.id"
+                :value="String(concept.id)"
+              >
+                {{ concept.title }}
+              </option>
+            </select>
+          </label>
+
+          <template
+            v-if="
+              isDomain &&
+              isCreateOrUpdate
+            "
+          >
+            <label>
+              <span>Capitol părinte</span>
+
+              <select
+                v-model="form.parentDomainId"
+                data-testid="parent-domain-id"
+                :disabled="
+                  !form.curriculumSubjectId ||
+                  catalogLoading
+                "
+              >
+                <option
+                  v-if="
+                    form.proposalType === 'update'
+                  "
+                  value=""
+                >
+                  Nu modifica
+                </option>
+
+                <option
+                  :value="
+                    form.proposalType === 'update'
+                      ? '__root__'
+                      : ''
+                  "
+                >
+                  Fără capitol părinte
+                </option>
+
+                <option
+                  v-for="domain in domains.filter(
+                    (item) =>
+                      String(item.id) !==
+                      String(form.entityId),
+                  )"
+                  :key="domain.id"
+                  :value="String(domain.id)"
+                >
+                  {{ domain.title }}
+                </option>
+              </select>
+            </label>
+
+            <label>
+              <span>
+                Titlu
+                <template
+                  v-if="
+                    form.proposalType === 'create'
+                  "
+                >
+                  *
+                </template>
+              </span>
+
+              <input
+                v-model="form.title"
+                data-testid="title"
+                type="text"
+                maxlength="255"
+                placeholder="Ex. Algebră"
+              >
+            </label>
+
+            <label>
+              <span>Descriere</span>
+
+              <textarea
+                v-model="form.description"
+                data-testid="description"
+                rows="4"
+                placeholder="Descrie capitolul..."
+              />
+            </label>
+          </template>
+
+          <label
+            v-if="
+              isConcept &&
+              form.proposalType === 'create'
+            "
+          >
+            <span>Capitol *</span>
+
+            <select
+              v-model="form.domainId"
+              data-testid="domain-id"
+              :disabled="
+                !form.curriculumSubjectId ||
+                catalogLoading
+              "
+            >
+              <option value="">
+                Selectează capitolul
+              </option>
+
+              <option
+                v-for="domain in domains"
+                :key="domain.id"
+                :value="String(domain.id)"
+              >
+                {{ domain.title }}
+              </option>
+            </select>
+          </label>
+
+          <div
+            v-if="
+              isConcept &&
+              form.proposalType === 'create' &&
+              form.curriculumSubjectId
+            "
+            class="curriculum-inline-action"
+          >
+            <span
+              v-if="
+                !catalogLoading &&
+                domains.length === 0
+              "
+            >
+              Materia nu are încă niciun capitol.
+            </span>
+
+            <button
+              type="button"
+              data-testid="create-domain-action"
+              @click="startChapterCreation"
+            >
+              + Propune un capitol nou
+            </button>
+          </div>
+
+          <template
+            v-if="
+              isConcept &&
+              isCreateOrUpdate
+            "
+          >
+            <label>
+              <span>
+                Titlul noțiunii
+                <template
+                  v-if="
+                    form.proposalType === 'create'
+                  "
+                >
+                  *
+                </template>
+              </span>
+
+              <input
+                v-model="form.title"
+                data-testid="title"
+                type="text"
+                maxlength="255"
+                placeholder="Ex. Ecuații de gradul I"
+              >
+            </label>
+
+            <label>
+              <span>Descriere</span>
+
+              <textarea
+                v-model="form.description"
+                data-testid="description"
+                rows="4"
+                placeholder="Ce trebuie să înțeleagă elevul despre această noțiune?"
+              />
+            </label>
+          </template>
+
+          <label
+            v-if="
+              isConcept &&
+              isAlias
+            "
+          >
+            <span>Denumire alternativă *</span>
 
             <input
-              v-model="form.name"
+              v-model="form.alias"
+              data-testid="alias"
               type="text"
               maxlength="255"
-              required
-              placeholder="Ex. Educație media"
+              placeholder="Ex. Ecuații liniare"
             >
           </label>
 
-          <label>
-            <span>Cod propus</span>
+          <label
+            v-if="
+              isConcept &&
+              isMergeCandidate
+            "
+          >
+            <span>Noțiunea care trebuie păstrată *</span>
 
-            <input
-              v-model="form.code"
-              type="text"
-              maxlength="64"
-              placeholder="Ex. EDU-MEDIA"
+            <select
+              v-model="form.duplicateEntityId"
+              data-testid="duplicate-entity-id"
+              :disabled="
+                !form.entityId ||
+                catalogLoading
+              "
             >
+              <option value="">
+                Selectează noțiunea care trebuie păstrată
+              </option>
+
+              <option
+                v-for="concept in availableConcepts.filter(
+                  (item) =>
+                    String(item.id) !==
+                    String(form.entityId),
+                )"
+                :key="concept.id"
+                :value="String(concept.id)"
+              >
+                {{ concept.title }}
+              </option>
+            </select>
           </label>
 
-          <label>
-            <span>Descriere</span>
-
-            <textarea
-              v-model="form.description"
-              rows="5"
-              placeholder="Descrie pe scurt materia propusă..."
-            />
-          </label>
+          <div
+            v-if="catalogError"
+            class="curriculum-form-error"
+            role="alert"
+          >
+            {{ catalogError }}
+          </div>
 
           <label>
             <span>
@@ -514,9 +1593,10 @@ onMounted(() => {
 
             <textarea
               v-model="form.reason"
+              data-testid="reason"
               rows="4"
               maxlength="2000"
-              placeholder="De ce ar trebui introdusă această materie?"
+              placeholder="Explică de ce propui această modificare..."
             />
           </label>
 
@@ -531,12 +1611,17 @@ onMounted(() => {
           <button
             type="submit"
             class="curriculum-submit"
-            :disabled="saving"
+            :disabled="
+              saving ||
+              catalogLoading
+            "
           >
             {{
               saving
                 ? 'Se trimite...'
-                : 'Trimite propunerea'
+                : catalogLoading
+                  ? 'Se încarcă...'
+                  : 'Trimite propunerea'
             }}
           </button>
         </form>
@@ -829,6 +1914,7 @@ onMounted(() => {
 }
 
 .curriculum-form input,
+.curriculum-form select,
 .curriculum-form textarea {
   width: 100%;
   min-width: 0;
@@ -842,7 +1928,8 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.curriculum-form input {
+.curriculum-form input,
+.curriculum-form select {
   min-height: 40px;
 }
 
@@ -852,11 +1939,39 @@ onMounted(() => {
 }
 
 .curriculum-form input:focus,
+.curriculum-form select:focus,
 .curriculum-form textarea:focus {
   border-color: var(--primary);
   box-shadow:
     0 0 0 3px
     rgba(49, 86, 211, 0.1);
+}
+
+.curriculum-inline-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -7px;
+}
+
+.curriculum-inline-action span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.curriculum-inline-action button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.curriculum-inline-action button:hover {
+  text-decoration: underline;
 }
 
 .curriculum-form-error {
